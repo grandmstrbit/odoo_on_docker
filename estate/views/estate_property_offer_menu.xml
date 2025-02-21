@@ -1,0 +1,15 @@
+<odoo>
+
+    <menuitem id="estate_property_offer_menu" 
+              name="Offers"
+              parent="settings_menu"
+    />
+    
+    
+    
+
+    
+
+    
+
+</odoo>

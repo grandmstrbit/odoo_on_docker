@@ -1,0 +1,108 @@
+<odoo>
+	<record id="estate_property_views_search" model="ir.ui.view">
+        <field name="name">estate.property.search</field>
+        <field name="model">estate.property</field>
+        <field name="arch" type="xml">
+            <search string="Search Opportunities">
+                <field name="name"/>
+                <field name="postcode"/>
+                <field name="expected_price"/>
+                <field name="bedrooms"/>
+                <field name="living_area"/>
+                <field name="facades"/>
+                
+                <separator/>               
+                <filter string="Available" name="inactive" domain="['|', ('status', '=', 'new'), '|', ('status', '=', 'offer received'), '!', ('status', '=', 'sold'), '!', ('status', '=', 'canselled'), '!', ('status', '=', 'offer accepted')]"/>
+				<filter string="Postcode" name="postcode" context="{'group_by':'postcode', 'residual_visible':True}"/>
+                
+            </search>
+        </field>
+    </record>
+
+
+	<record id="estate_property_tree" model="ir.ui.view">
+        <field name="name">estate.property.tree</field>
+        <field name="model">estate.property</field>
+        <field name="arch" type="xml">
+        	<tree string="Properties">
+        		<field name="name"/>
+        		<field name="postcode"/>
+        		<field name="bedrooms"/>
+        		<field name="living_area"/>
+        		<field name="expected_price"/>
+        		<field name="selling_price"/>
+        		<field name="date_availability"/>
+        		<field name="status"/>
+        	</tree>
+        </field>
+    </record>
+
+
+    <record id="estate_property_view_form" model="ir.ui.view">
+        <field name="name">estate.property.form</field>
+        <field name="model">estate.property</field>
+        <field name="arch" type="xml">
+            <form string="Real Estate">
+	            <sheet>
+	                <div class="oe_title">
+                        <h1 class="mb32">
+                            <field name="name" class="mb16"/>
+                        </h1>
+                    </div>
+                    <group>
+                    	<field name="tax_ids" widget="many2many_tags"/>
+                    </group>
+	                <group>
+	                    <group>
+	                    	<field name="property_id"/> <!--many2one выводит тип недвижимости "Type"-->
+	                        <field name="postcode"/>
+	                        <field name="date_availability"/>       
+	                    </group>         
+	                    <group>
+	                    	<field name="expected_price"/>
+	                    	<field name="selling_price"/>
+	                    </group>
+	                </group>
+	                <notebook>
+	                	<page string="Description">
+	                		<group>
+		                		<field name="description"/>
+		                		<field name="bedrooms"/>
+		                		<field name="living_area"/>
+		                		<field name="facades"/>
+		                		<field name="garage"/>
+		                		<field name="garden"/>
+		                		<field name="garden_area"/>
+		                		<field name="garden_orientation"/>
+		                		<field name="status"/>
+		                	</group>
+	                	</page>
+	                	<page string="Offers">
+	                		<group>
+		                		<field name="test_ids"/>
+		                	</group>
+	                	</page>
+	                	<page string="Other Info">
+	                		<group>
+		                		<field name="salesman_id"/>
+		                		<field name="buyer_id"/> <!--many2one выводит покупателя и продавца -->
+		                	</group>
+	                	</page>  
+	                </notebook>
+	            </sheet>
+            </form>
+        </field>
+    </record>    
+
+	
+
+	<record id="action_estate_property" model="ir.actions.act_window">
+		<field name="name">Properties</field>
+		<field name="res_model">estate.property</field>
+		<field name="view_mode">tree,form</field>
+	</record>
+
+
+
+
+</odoo>

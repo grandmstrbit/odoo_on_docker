@@ -1,0 +1,16 @@
+<odoo>
+
+    <menuitem id="estate_property_tags_menu" 
+              name="Property Tags"
+              parent="settings_menu"
+              action="action_estate_property_tags"
+    />
+    
+    
+    
+
+    
+
+    
+
+</odoo>
