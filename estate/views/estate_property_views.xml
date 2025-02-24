@@ -60,6 +60,7 @@
 	                    </group>         
 	                    <group>
 	                    	<field name="expected_price"/>
+	                    	<field name="best_offer"/>
 	                    	<field name="selling_price"/>
 	                    </group>
 	                </group>
@@ -74,18 +75,19 @@
 		                		<field name="garden"/>
 		                		<field name="garden_area"/>
 		                		<field name="garden_orientation"/>
+		                		<field name="total_area"/>
 		                		<field name="status"/>
 		                	</group>
 	                	</page>
 	                	<page string="Offers">
 	                		<group>
-		                		<field name="test_ids"/>
+		                		<field name="offer_ids"/> <!--one2many выводит модель во вкладке-->
 		                	</group>
 	                	</page>
 	                	<page string="Other Info">
 	                		<group>
-		                		<field name="salesman_id"/>
-		                		<field name="buyer_id"/> <!--many2one выводит покупателя и продавца -->
+		                		<field name="user_id"/>
+		                		<field name="partner_id"/> <!--many2one выводит покупателя и продавца -->
 		                	</group>
 	                	</page>  
 	                </notebook>

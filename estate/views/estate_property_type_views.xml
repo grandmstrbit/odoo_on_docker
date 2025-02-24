@@ -29,12 +29,6 @@
                             <field name="name" class="mb16"/>
                         </h1>
                     </div>
-	                
-	                <notebook>
-	                	<page string="Notes">
-	                		
-	                	</page>
-	                </notebook>
 	            </sheet>
             </form>
         </field>
