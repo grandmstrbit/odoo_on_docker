@@ -8,9 +8,14 @@
         	<tree>
         		<field name="price"/>
         		<field name="partner_id"/>
-        		<field name="status"/>
-        		<field name='validility'/>
+        		<field name='validity'/>
         		<field name='deadline'/>
+                <!-- Кнопка "Confirm" -->
+                <button name="action_confirm" string="Confirm" type="object" class="btn-primary" icon="fa-check"/>
+                
+                <!-- Кнопка "Refuse" -->
+                <button name="action_refuse" string="Refuse" type="object" class="btn-secondary" icon="fa-times"/>
+        		<field name="status"/>
         	</tree>
         </field>
     </record>
@@ -21,6 +26,7 @@
         <field name="arch" type="xml">
             <form>
 	            <sheet>
+
 	            	<group>
 	                	<field name='price'/>
 	                </group>
@@ -28,7 +34,7 @@
 	                	<field name='partner_id'/>
 	            	</group>
 	                <group>
-	                	<field name='validility'/>
+	                	<field name='validity'/>
 	                </group>
 	                <group>
 	                	<field name='deadline'/>
