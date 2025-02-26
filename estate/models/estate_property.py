@@ -24,6 +24,7 @@ import warnings
 class EstateProperty(models.Model):
     _name = 'estate.property'
     _description = 'Example Estate Property'
+    _order = 'id desc'
 
     name = fields.Char(string='Name', required=True)
     description = fields.Text(string='Description')
@@ -58,22 +59,24 @@ class EstateProperty(models.Model):
     total_area = fields.Float(string="Total Area", compute="_compute_total", store=True)  # сумма двух значений
     
     _sql_constraints = [
-        ('check_expected_price', 'CHECK(expected_price >= 0)', 'The expected price must be strictly positive.'),
+        ('check_expected_price', 'CHECK(expected_price > 0 AND expected_price != 0)', 'The expected price must be strictly positive.'),
         ('check_selling_price', 'CHECK(selling_price >= 0)',  'The selling price must be strictly positive.'),
     ]    
 
-    @api.constrains('selling_price', 'expected_price')
+    @api.constrains('selling_price', 'expected_price') #цена не менее 90%
     def _check_selling_price(self):
         for record in self:
+            if float_is_zero(record.selling_price, precision_digits=2):
+                continue
             if float_compare(record.selling_price, 0.9 * record.expected_price, precision_digits=2) < 0:
                 raise ValidationError("The selling price cannot be lower than 90% of the expected price.")
 
-    @api.depends("living_area", "garden_area")
+    @api.depends("living_area", "garden_area") #общая площадь сада и дома
     def _compute_total(self):
         for record in self:
             record.total_area = record.living_area + record.garden_area
 
-    @api.depends("offer_ids.price")
+    @api.depends("offer_ids.price") #лучшее предложение
     def _compute_best_offer(self):
         for record in self:
             if record.offer_ids:  # Проверяем, есть ли связанные предложения
@@ -81,7 +84,7 @@ class EstateProperty(models.Model):
             else:
                 record.best_offer = 0.0
 
-    @api.onchange("garden")
+    @api.onchange("garden") #если активно, устанавливает значения по умолчанию
     def _onchange_garden(self):
         if self.garden:
             self.garden_area = 10 
@@ -90,27 +93,47 @@ class EstateProperty(models.Model):
             self.garden_area = 0
             self.garden_orientation = False
 
-    def action_sold(self):
+    def action_sold(self): #кнопка 
         for record in self:
             if record.status == 'cancelled':
                 raise UserError("Cancelled properties cannot be sold.")
             record.status = 'sold'
         return True
 
-    def action_cancel(self):
+    def action_cancel(self): #кнопка
         for record in self:
             if record.status == 'sold':
                 raise UserError("Sold properties cannot be cancelled.")
             record.status = 'cancelled'
         return True
 
+    def unlink(self): #для удаления форм
+        for record in self:
+            record.offer_ids.unlink()
+        return super(EstateProperty, self).unlink()
+
+    def _update_property_status(self): #метод для обновления статуса свойства на основе предложений
+        for property in self:
+            if any(offer.status == 'accepted' for offer in property.offer_ids):
+                property.write({'status': 'offer accepted'})
+            elif property.offer_ids:
+                property.write({'status': 'offer received'})
+            else:
+                property.write({'status': 'new'})
+
+
 
 class EstatePropertyType(models.Model):
     _name = 'estate.property.type'
     _description = 'Estate Property Type'
+    _order = 'sequence ASC, name ASC'
 
     name = fields.Char(string='Name', required=True)
     description = fields.Text(string='Description')
+    sequence = fields.Integer(string='Sequence', default=10)
+    
+
+    property_ids = fields.One2many("estate.property", "property_id")
 
     _sql_constraints = [
         ('unique_name', 'UNIQUE(name)',
@@ -121,8 +144,10 @@ class EstatePropertyType(models.Model):
 class EstatePropertyTags(models.Model):
     _name = 'estate.property.tags'
     _description = 'Estate Property Tags'
+    _order = 'name asc'
 
     name = fields.Char(string='Name', required=True, default="cozy")
+    color = fields.Integer() 
 
     _sql_constraints = [
         ('unique_name', 'UNIQUE(name)',
@@ -133,6 +158,7 @@ class EstatePropertyTags(models.Model):
 class EstatePropertyOffer(models.Model):
     _name = 'estate.property.offer'
     _description = 'Estate Property Offer'
+    _order = 'price desc'
 
     price = fields.Float()
     status = fields.Selection(
@@ -146,10 +172,10 @@ class EstatePropertyOffer(models.Model):
     date_deadline = fields.Date(string="Deadline", default=fields.Date.today())
 
     _sql_constraints = [
-        ('check_price', 'CHECK(price >= 0)', 'The expected price must be strictly positive.'),
+        ('check_price', 'CHECK(price > 0 AND price != 0)', 'The offer price must be strictly positive.'),
     ]      
 
-    @api.depends("validity", "date_deadline")
+    @api.depends("validity", "date_deadline") #расчет дэдлайна
     def _compute_deadline(self):
         for record in self:
             if record.date_deadline and record.validity:
@@ -165,41 +191,23 @@ class EstatePropertyOffer(models.Model):
             else:
                 record.validity = 0
 
-    def action_confirm(self):
+    def action_confirm(self): #кнопка в модели offer
         for record in self:
-            # Если статус не 'draft', предложение нельзя подтвердить
-            if record.status != 'draft':
-                raise UserError("Only draft offers can be confirmed.")
-
-            # Устанавливаем цену предложения (или 0, если цена не указана)
-            record.price = record.price if record.price is not None else 0
-
-            # Проверяем, что selling_price равно 0 до подтверждения предложения
-            if not float_is_zero(record.property_id.selling_price, precision_digits=2):
-                raise UserError("Selling price must be zero until an offer is confirmed.")
-
             # Устанавливаем продажную цену и покупателя в связанной модели EstateProperty
             record.property_id.write({
                 'selling_price': record.price,  # Устанавливаем продажную цену
                 'partner_id': record.partner_id.id,  # Устанавливаем покупателя
             })
-
-            # Отклоняем все другие предложения для этого свойства
-            other_offers = self.search([
-                ('property_id', '=', record.property_id.id),
-                ('id', '!=', record.id),
-                ('status', '=', 'draft'),
-            ])
-            other_offers.write({'status': 'refused'})
-
-            # Устанавливаем статус текущего предложения как "accepted"
             record.status = 'accepted'
+            record.property_id._update_property_status()
         return True
 
-    def action_refuse(self):
+    def action_refuse(self): #кнопка в модели offer
         for record in self:
-            # Если статус не 'draft', предложение нельзя отказать
-            if record.status != 'draft':
-                raise UserError("Only draft offers can be refused.")
+            record.property_id.write({
+                'selling_price': 0,
+                'partner_id': False,
+                })
             record.status = 'refused'
+            record.property_id._update_property_status()
         return True
