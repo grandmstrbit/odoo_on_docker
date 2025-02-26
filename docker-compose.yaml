@@ -36,7 +36,7 @@ services:
     networks:
       - backend
     command: >
-      odoo -d odoo -i base,mail,contacts --db_host=db
+      odoo -d odoo -i base -u estate,mail,contacts --db_host=db
       --db_user=odoo --db_password=odoo --without-demo=all --stop-after-init
     depends_on:
       - db
