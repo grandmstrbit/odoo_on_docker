@@ -8,7 +8,8 @@
                 <field name="postcode"/>
                 <field name="expected_price"/>
                 <field name="bedrooms"/>
-                <field name="living_area"/>
+                <field name="living_area" filter_domain="[('living_area', '>=', self)]"/>
+                <field name="tax_ids"/>
                 <field name="facades"/>
                 
                 <separator/>               
@@ -24,15 +25,18 @@
         <field name="name">estate.property.tree</field>
         <field name="model">estate.property</field>
         <field name="arch" type="xml">
-        	<tree string="Properties">
-        		<field name="name"/>
+        	<tree string="Properties" decoration-info="status == 'offer received'"
+              decoration-success="status == 'offer accepted'" decoration-danger="status == 'sold'">
+        		<field name="name" string="Title"/>
+        		<field name="property_id"/>
         		<field name="postcode"/>
+        		<field name="tax_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
         		<field name="bedrooms"/>
         		<field name="living_area"/>
         		<field name="expected_price"/>
         		<field name="selling_price"/>
-        		<field name="date_availability"/>
-        		<field name="status"/>
+        		<field name="date_availability" optional="1"/>
+        		<field name="status" string="" invisible="1"/>
         	</tree>
         </field>
     </record>
@@ -46,9 +50,9 @@
 	        
     			<header>
 					<button string="Sold" type="object" name="action_sold" class="btn-primary"
-						invisible="status in ['new', 'offer_received']"/>
+						invisible="status in ['new', 'cancelled', 'sold']"/>
                 	<button string="Cancel" type="object" name="action_cancel" class="btn-secondary"
-                		invisible="status  in ['new', 'offer_received']"/>
+                		invisible="status in ['new', 'cancelled', 'sold']"/>
                 	<field name="status" widget="statusbar" readonly="1"/>>
     			</header>	
 
@@ -59,7 +63,7 @@
                         </h1>
                     </div>
                     <group>
-                    	<field name="tax_ids" widget="many2many_tags" options="{'color_field': 'color', 'no_create_edit': False}"/>
+                    	<field name="tax_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
                     </group>
 	                <group>
 	                    <group>
@@ -83,14 +87,15 @@
 		                		<field name="facades"/>
 		                		<field name="garage"/>
 		                		<field name="garden"/>
-		                		<field name="garden_area"/>
-		                		<field name="garden_orientation"/>
+		                		<field name="garden_area" invisible="not garden"/>
+		                		<field name="garden_orientation" invisible="not garden"/>
 		                		<field name="total_area"/>
 		                	</group>
 	                	</page>
 	                	<page string="Offers">
 	                		<group>
-		                		<field name="offer_ids"/> <!--one2many выводит модель во вкладке-->
+		                		<field name="offer_ids"
+		                			readonly="status in ['offer accepted', 'sold', 'cancelled']"/>
 		                	</group>
 	                	</page>
 	                	<page string="Other Info">
@@ -111,6 +116,7 @@
 		<field name="name">Properties</field>
 		<field name="res_model">estate.property</field>
 		<field name="view_mode">tree,form</field>
+		<field name="context">{'search_default_inactive': 1}</field> 
 	</record>
 
 

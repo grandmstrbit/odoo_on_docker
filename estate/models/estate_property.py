@@ -131,6 +131,8 @@ class EstatePropertyType(models.Model):
     name = fields.Char(string='Name', required=True)
     description = fields.Text(string='Description')
     sequence = fields.Integer(string='Sequence', default=10)
+    offer_ids = fields.One2many('estate.property.offer', 'property_type_id', string='Offers')
+    offer_count = fields.Integer(string="Quantity Offers", compute='_compute_offer_count', store=True)
     
 
     property_ids = fields.One2many("estate.property", "property_id")
@@ -139,6 +141,11 @@ class EstatePropertyType(models.Model):
         ('unique_name', 'UNIQUE(name)',
          'The name must be unique.')
     ]
+
+    @api.depends('offer_ids')
+    def _compute_offer_count(self):
+        for record in self:
+            record.offer_count = len(record.offer_ids)
 
 
 class EstatePropertyTags(models.Model):
@@ -170,6 +177,8 @@ class EstatePropertyOffer(models.Model):
     deadline = fields.Date(string="Deadline", compute="_compute_deadline", 
         inverse="_inverse_deadline", store=True)
     date_deadline = fields.Date(string="Deadline", default=fields.Date.today())
+    property_type_id = fields.Many2one('estate.property.type', string="Property Type", 
+        related='property_id.property_id', store=True)
 
     _sql_constraints = [
         ('check_price', 'CHECK(price > 0 AND price != 0)', 'The offer price must be strictly positive.'),

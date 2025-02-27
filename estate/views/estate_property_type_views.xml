@@ -23,7 +23,19 @@
         <field name="model">estate.property.type</field>
         <field name="arch" type="xml">
             <form string="Property Types">
-	            <sheet>
+                <sheet>
+                    <group>
+                        <field name="offer_count" string="Quantity of Offers" invisible="0"/>
+                        <div class="float-right">
+                            <button string="Statisctis" 
+                                type="action" 
+                                name="%(action_estate_property_offer_statistics)d"
+                                class="btn-primary"
+                                invisible="offer_count == 0"/>
+                        </div>
+                    </group>
+                </sheet>
+	            <sheet>     
 	                <div class="oe_title">
                         <h1 class="mb32">
                             <field name="name" class="mb16"/>
@@ -35,7 +47,7 @@
                                 <field name="property_ids" options="{'no_create': True, 'no_edit': True}"> 
                     
                                     <tree>
-                                        <field name="name"/>
+                                        <field name="name" string='Title'/>
                                         <field name="expected_price"/>
                                         <field name="status"/>             
                                     </tree>
