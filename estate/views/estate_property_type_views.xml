@@ -23,18 +23,16 @@
         <field name="model">estate.property.type</field>
         <field name="arch" type="xml">
             <form string="Property Types">
-                <sheet>
-                    <group>
-                        <field name="offer_count" string="Quantity of Offers" invisible="0"/>
-                        <div class="float-right">
-                            <button string="Statisctis" 
-                                type="action" 
-                                name="%(action_estate_property_offer_statistics)d"
-                                class="btn-primary"
-                                invisible="offer_count == 0"/>
-                        </div>
-                    </group>
-                </sheet>
+                
+                <group>
+                    <field name="offer_count" string="Quantity of Offers:" invisible="0"/> 
+                    <button icon="fa-credit-card" 
+                        type="action" 
+                        name="%(action_estate_property_offer_statistics)d"
+                        class="btn-primary"
+                        invisible="offer_count == 0"/>   
+                </group>
+                
 	            <sheet>     
 	                <div class="oe_title">
                         <h1 class="mb32">

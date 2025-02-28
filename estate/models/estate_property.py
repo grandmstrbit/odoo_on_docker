@@ -55,13 +55,18 @@ class EstateProperty(models.Model):
     tax_ids = fields.Many2many('estate.property.tags')
     offer_ids = fields.One2many("estate.property.offer", "property_id")
     best_offer = fields.Float(string='Best Offer', compute="_compute_best_offer", readonly=True)
-    
     total_area = fields.Float(string="Total Area", compute="_compute_total", store=True)  # сумма двух значений
     
     _sql_constraints = [
         ('check_expected_price', 'CHECK(expected_price > 0 AND expected_price != 0)', 'The expected price must be strictly positive.'),
         ('check_selling_price', 'CHECK(selling_price >= 0)',  'The selling price must be strictly positive.'),
-    ]    
+    ]
+
+    @api.ondelete(at_uninstall=False)
+    def _delete_properties(self):
+        for status in self:
+            if record.status != 'new':
+                raise UserError("Only New and Cancelled can be deleted")
 
     @api.constrains('selling_price', 'expected_price') #цена не менее 90%
     def _check_selling_price(self):
@@ -134,7 +139,6 @@ class EstatePropertyType(models.Model):
     offer_ids = fields.One2many('estate.property.offer', 'property_type_id', string='Offers')
     offer_count = fields.Integer(string="Quantity Offers", compute='_compute_offer_count', store=True)
     
-
     property_ids = fields.One2many("estate.property", "property_id")
 
     _sql_constraints = [
@@ -153,7 +157,7 @@ class EstatePropertyTags(models.Model):
     _description = 'Estate Property Tags'
     _order = 'name asc'
 
-    name = fields.Char(string='Name', required=True, default="cozy")
+    name = fields.Char(string='Name', required=True)
     color = fields.Integer() 
 
     _sql_constraints = [
@@ -183,6 +187,24 @@ class EstatePropertyOffer(models.Model):
     _sql_constraints = [
         ('check_price', 'CHECK(price > 0 AND price != 0)', 'The offer price must be strictly positive.'),
     ]      
+
+    @api.model
+    def create(self, vals):
+        # Получаем свойство, к которому относится предложение
+        property_id = self.env['estate.property'].browse(vals.get('property_id'))
+        # Проверяем, есть ли существующие предложения
+        if property_id.offer_ids:
+            # Находим максимальную сумму среди существующих предложений
+            max_offer_price = max(property_id.offer_ids.mapped('price'))   
+            # Если новое предложение меньше максимального, вызываем ошибку
+            if vals.get('price', 0.0) < max_offer_price:
+                raise ValidationError("The offer price cannot be lower than the existing.")
+        # Создаем предложение
+        offer = super(EstatePropertyOffer, self).create(vals)
+        # Обновляем статус связанного свойства на "Offer Received"
+        if offer.property_id:
+            offer.property_id._update_property_status()
+        return offer
 
     @api.depends("validity", "date_deadline") #расчет дэдлайна
     def _compute_deadline(self):
@@ -220,3 +242,16 @@ class EstatePropertyOffer(models.Model):
             record.status = 'refused'
             record.property_id._update_property_status()
         return True
+
+
+class ResUsers(models.Model):
+    _inherit = 'res.users'
+
+
+    property_ids = fields.One2many('estate.property', 'user_id', string='uWu', domain=[('active', '=', True)])
+
+    @api.depends('property_ids')
+    def _compute_property_count(self):
+        for record in self:
+            record.property_count = len(record.property_ids)
+    property_count = fields.Integer(sting='Number of Properties', compute='_compute_proeprty_count')

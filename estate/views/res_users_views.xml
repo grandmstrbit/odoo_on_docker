@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Наследование стандартной формы пользователя -->
+    <record id="view_users_form_inherit" model="ir.ui.view">
+        <field name="name">res.users.form.inherit</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <!-- Находим позицию, куда хотим добавить новую вкладку -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Real Estate Properties">
+                    <field name="property_ids">
+                        <tree decoration-info="status == 'offer received'" decoration-success="status == 'offer accepted'" decoration-danger="status == 'sold'">
+                            <field name="name" string="Title"/>
+                            <field name="property_id"/>
+                            <field name="postcode"/>
+                            <field name="tax_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
+                            <field name="bedrooms"/>
+                            <field name="living_area"/>
+                            <field name="expected_price"/>
+                            <field name="selling_price"/>
+                            <field name="date_availability" optional="1"/>
+                            <field name="status" string="" invisible="1"/>
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+
+
+</odoo>
