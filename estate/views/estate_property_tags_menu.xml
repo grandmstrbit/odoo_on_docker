@@ -5,12 +5,5 @@
               parent="settings_menu"
               action="action_estate_property_tags"
     />
-    
-    
-    
-
-    
-
-    
-
+       
 </odoo>

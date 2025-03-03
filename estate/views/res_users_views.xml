@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Наследование стандартной формы пользователя -->
+
     <record id="view_users_form_inherit" model="ir.ui.view">
         <field name="name">res.users.form.inherit</field>
         <field name="model">res.users</field>
@@ -27,7 +27,5 @@
             </xpath>
         </field>
     </record>
-
-
 
 </odoo>

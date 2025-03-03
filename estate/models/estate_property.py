@@ -1,24 +1,8 @@
 from dateutil.relativedelta import relativedelta
 from odoo import api, fields, models
-
-from odoo.exceptions import RedirectWarning, UserError, ValidationError, AccessError
-from odoo.tools import float_compare, date_utils, email_split, email_re
-from odoo.tools.misc import formatLang, format_date, get_lang
+from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare, float_is_zero
 
-from datetime import date, timedelta
-from collections import defaultdict
-from itertools import zip_longest
-from hashlib import sha256
-from json import dumps
-
-import copy 
-import logging
-import threading
-import ast
-import json
-import re
-import warnings
 
 
 class EstateProperty(models.Model):
@@ -64,7 +48,7 @@ class EstateProperty(models.Model):
 
     @api.ondelete(at_uninstall=False)
     def _delete_properties(self):
-        for status in self:
+        for record in self:
             if record.status != 'new':
                 raise UserError("Only New and Cancelled can be deleted")
 
@@ -254,4 +238,4 @@ class ResUsers(models.Model):
     def _compute_property_count(self):
         for record in self:
             record.property_count = len(record.property_ids)
-    property_count = fields.Integer(sting='Number of Properties', compute='_compute_proeprty_count')
+    property_count = fields.Integer(string='Number of Properties', compute='_compute_proeprty_count')

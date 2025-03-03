@@ -26,15 +26,10 @@
         </field>
     </record>    
 
-
-
-
 	<record id="action_estate_property_tags" model="ir.actions.act_window">
 		<field name="name">Property Tags</field>
 		<field name="res_model">estate.property.tags</field>
 		<field name="view_mode">tree,form</field>
 	</record>
-
-
 
 </odoo>

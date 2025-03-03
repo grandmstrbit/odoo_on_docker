@@ -1,5 +1,4 @@
-<odoo>
-			
+<odoo>		
     <record id="estate_property_type_tree" model="ir.ui.view">
         <field name="name">estate.property.type.tree</field>
         <field name="model">estate.property.type</field>
@@ -11,7 +10,6 @@
         </field>
     </record>
 	
-
 	<record id="action_estate_property_type" model="ir.actions.act_window">
 		<field name="name">Property Types</field>
 		<field name="res_model">estate.property.type</field>
@@ -22,8 +20,7 @@
         <field name="name">estate.property.type.form</field>
         <field name="model">estate.property.type</field>
         <field name="arch" type="xml">
-            <form string="Property Types">
-                
+            <form string="Property Types">              
                 <group>
                     <field name="offer_count" string="Quantity of Offers:" invisible="0"/> 
                     <button icon="fa-credit-card" 
@@ -31,8 +28,7 @@
                         name="%(action_estate_property_offer_statistics)d"
                         class="btn-primary"
                         invisible="offer_count == 0"/>   
-                </group>
-                
+                </group>                
 	            <sheet>     
 	                <div class="oe_title">
                         <h1 class="mb32">
@@ -43,16 +39,12 @@
                         <page string="Properties">
                             <group>
                                 <field name="property_ids" options="{'no_create': True, 'no_edit': True}"> 
-                    
                                     <tree>
                                         <field name="name" string='Title'/>
                                         <field name="expected_price"/>
                                         <field name="status"/>             
                                     </tree>
                                 </field>    
-                            </group>
-                            <group>
-
                             </group>                      
                         </page>  
                     </notebook>
@@ -60,7 +52,4 @@
             </form>
         </field>
     </record>    
-
-
-
 </odoo>

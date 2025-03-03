@@ -1,62 +1,61 @@
 <odoo>
-			
 
-	<record id="estate_property_offer_tree" model="ir.ui.view">
+    <record id="estate_property_offer_tree" model="ir.ui.view">
         <field name="name">estate.property.offer.tree</field>
         <field name="model">estate.property.offer</field>
         <field name="arch" type="xml">
-        	<tree editable="bottom"	
-              decoration-success="status == 'accepted'" decoration-danger="status == 'refused'">
-        		<field name="price"/>
-        		<field name="partner_id"/>
-        		<field name='validity'/>
-        		<field name='deadline'/>
-                <!-- Кнопка "Confirm" -->
-                <button name="action_confirm" string="Confirm" type="object" class="btn-primary" invisible="status not in 'draft'"/>
-                
-                <!-- Кнопка "Refuse" -->
-                <button name="action_refuse" string="Refuse" type="object" class="btn-secondary"  invisible="status not in 'draft'"/>
-        		<field name="status" string="" invisible="1"/>
-        	</tree>
+            <tree editable="bottom"
+                  decoration-success="status == 'accepted'"
+                  decoration-danger="status == 'refused'">
+                <field name="price"/>
+                <field name="partner_id"/>
+                <field name="validity"/>
+                <field name="deadline"/>
+
+                <button name="action_confirm" string="Confirm" type="object" class="btn-primary" invisible="status != 'draft'"/>
+                <button name="action_refuse" string="Refuse" type="object" class="btn-secondary" invisible="status != 'draft'"/>
+
+                <field name="status" string="" invisible="1"/>
+            </tree>
         </field>
     </record>
-	
-	<record id="estate_property_offer_form" model="ir.ui.view">
+
+    <record id="estate_property_offer_form" model="ir.ui.view">
         <field name="name">estate.property.offer.form</field>
         <field name="model">estate.property.offer</field>
         <field name="arch" type="xml">
             <form>
-	            <sheet>
+                <sheet>
+                    <group>
+                        <field name="price"/>
+                    </group>
 
-	            	<group>
-	                	<field name='price'/>
-	                </group>
-	                <group>
-	                	<field name='partner_id'/>
-	            	</group>
-	                <group>
-	                	<field name='validity'/>
-	                </group>
-	                <group>
-	                	<field name='deadline'/>
-	                </group>
-	                <group>
-	                	<field name='status'/>
-	                </group>
-	            </sheet>
+                    <group>
+                        <field name="partner_id"/>
+                    </group>
+
+                    <group>
+                        <field name="validity"/>
+                    </group>
+
+                    <group>
+                        <field name="deadline"/>
+                    </group>
+
+                    <group>
+                        <field name="status"/>
+                    </group>
+                </sheet>
             </form>
         </field>
-    </record>    
+    </record>
 
-
-	<record id="action_estate_property_offer_statistics" model="ir.actions.act_window">
-	    <field name="name">Offer Statistics</field>
-	    <field name="res_model">estate.property.offer</field>
-	    <field name="view_mode">tree,form</field>
-	    <field name="domain">[('property_type_id', '=', active_id)]</field>
-	    <field name="context">{'search_default_group_by_property': 1}</field>
-	</record>
-
-
-
+    <record id="action_estate_property_offer_statistics" model="ir.actions.act_window">
+        <field name="name">Offer Statistics</field>
+        <field name="res_model">estate.property.offer</field>
+        <field name="view_mode">tree,form</field>
+        <field name="domain">[('property_type_id', '=', active_id)]</field>
+        <field name="context">{'search_default_group_by_property': 1}</field>
+    </record>
+    
 </odoo>
