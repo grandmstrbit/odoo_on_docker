@@ -141,8 +141,6 @@
                                 <field name= 'tax_ids' options="{'color_field': 'color', 'no_create': True}"/>
                             </div>
 
-                            
-
                         </div>
                     </t>
                 </templates>
@@ -156,5 +154,12 @@
 		<field name="view_mode">tree,form,kanban</field>
 		<field name="context">{'search_default_inactive': 0}</field>
 	</record>
+
+	<record id="action_estate_dashboard" model="ir.actions.client">
+	    <field name="name">Estate Dashboard</field>
+	    <field name="tag">action_estate_dashboard</field>
+	</record>
+
+
 
 </odoo>

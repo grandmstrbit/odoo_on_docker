@@ -1,0 +1,29 @@
+.o_dashboard {
+    display: flex;
+    justify-content: space-around;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    margin: 20px;
+}
+
+.o_dashboard_item {
+    text-align: center;
+    padding: 20px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    width: 30%;
+}
+
+.o_dashboard_item h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.o_dashboard_item p {
+    margin: 10px 0 0;
+    font-size: 24px;
+    color: ##006400;
+}

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="estate_property.OfferButton">
+        <button class="btn btn-primary btn-lg" t-on-click="onClick">
+            <i class="fa fa-money"/>
+            <span> <t t-esc="props.record.data.offer_count"/> Offers </span>
+        </button>
+    </t>
+</templates>

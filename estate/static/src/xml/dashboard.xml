@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="estate_property.EstateDashboard">
+        <div class="o_dashboard">
+            <div class="o_dashboard_item">
+                <h3>Total Properties</h3>
+                <p><t t-esc="state.totalProperties"/></p>
+            </div>
+            <div class="o_dashboard_item">
+                <h3>Total Offers</h3>
+                <p><t t-esc="state.totalOffers"/></p>
+            </div>
+            <div class="o_dashboard_item">
+                <h3>Average Price</h3>
+                <p><t t-esc="state.averagePrice"/></p>
+            </div>
+        </div>
+    </t>
+</templates>

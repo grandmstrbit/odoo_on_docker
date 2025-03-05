@@ -23,4 +23,10 @@
 
     />
 
+    <menuitem id="menu_estate_dashboard" 
+          name="Dashboard" 
+          action="action_estate_dashboard" 
+          parent="advertisments_menu" 
+          sequence="10"/>
+
 </odoo>
