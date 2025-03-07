@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+estate.access_estate_property,access_estate_property,estate.model_estate_property,base.group_user,1,1,1,1
+estate.access_sro_contacts,access_sro_contacts,estate.model_sro_contacts,base.group_user,1,1,1,1
+estate.access_sro_contacts_work,access_sro_contacts_work,estate.model_sro_contacts_work,base.group_user,1,1,1,1
+estate.access_sro_contacts_discipline,access_sro_contacts_discipline,estate.model_sro_contacts_discipline,base.group_user,1,1,1,1
+estate.access_sro_contacts_inspection,access_sro_contacts_inspection,estate.model_sro_contacts_inspection,base.group_user,1,1,1,1
+estate.access_sro_contacts_contract,access_sro_contacts_contract,estate.model_sro_contacts_contract,base.group_user,1,1,1,1

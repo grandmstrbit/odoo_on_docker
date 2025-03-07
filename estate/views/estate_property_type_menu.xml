@@ -1,0 +1,9 @@
+<odoo>
+
+    <menuitem id="estate_property_type_menu" 
+              name="Property Types"
+              parent="settings_menu"
+              action="action_estate_property_type"
+    />
+    
+</odoo>
