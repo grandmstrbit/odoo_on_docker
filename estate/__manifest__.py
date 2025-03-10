@@ -32,14 +32,14 @@
     ],
     "assets": {
         "web.assets_backend": [
-            "estate/static/src/js/offer_button.js",
-            "estate/static/src/js/offer_button_registry.js",
+    #        "estate/static/src/js/offer_button.js",
+    #        "estate/static/src/js/offer_button_registry.js",
     #                   
     #        
     #        "estate/static/src/js/dashboard.js",
     #        "estate/static/src/js/dashboard_registry.js",
     #        
-            "estate/static/src/xml/offer_button.xml",
+    #        "estate/static/src/xml/offer_button.xml",
     #        "estate/static/src/xml/dashboard.xml",
     #
     #        "estate/static/src/css/dashboard.css", 

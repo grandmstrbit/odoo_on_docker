@@ -242,7 +242,7 @@ class ResUsers(models.Model):
 """
 
 # Модель для хранения данных СРО
-
+'''
 class SroContacts(models.Model):
     _name = 'sro.contacts'
     _description = 'SRO Contacts'
@@ -294,14 +294,14 @@ class SroContacts(models.Model):
 
     # Связь с res.partner
     partner_id = fields.Many2one('res.partner', string='Контакты')
-
+'''
 
 class SroContactsWork(models.Model):
     _name = 'sro.contacts.work'
     _description = "sro contacts work"
 
     # Новые поля: Сведения о наличии прав на выполнение работ
-    number = fields.Integer()
+    number = fields.Integer(string="№")
     right_status = fields.Selection([
         ('active', 'Действует'),
         ('suspended', 'Прекращено'),
@@ -388,11 +388,58 @@ class SroContactsContract(models.Model):
 class ResPartner(models.Model):
     _inherit = 'res.partner'
 
+    # Регистрационные данные
+    registration_number = fields.Char(string="Регистрационный номер")
+    short_name = fields.Char(string="Сокращенное наименование")
+    full_name = fields.Char(string="Полное наименование")
+    inn = fields.Char(string="ИНН")
+    ogrn = fields.Char(string="ОГРН")
+    registration_date = fields.Date(string="Дата гос. регистрации ЮЛ/ИП")
+
+    # Сведения о членстве в СРО
+    sro_membership_compliance = fields.Selection([
+        ('active', 'Соответствует'),
+        ('suspended', 'Не соответствует'),
+    ], string="Сведения о соответствии члена СРО условиям членства, предусмотренным законодательством РФ и (или) внутренними документами СРО")
+    sro_membership_status = fields.Selection([
+        ('active', 'Является членом'),
+        ('suspended', 'Исключен'),
+    ], string="Статус членства")
+    sro_registration_date = fields.Date(string="Дата регистрации в реестре СРО (внесения сведений в реестр)")
+    sro_admission_basis = fields.Char(string="Основание приема в СРО") #Должна быть ссылка на документ
+
+    # Компенсационные фонды
+    compensation_fund_vv_amount = fields.Float(string="Сумма взноса в Компенсационный Фонд возмещения вреда (КФ ВВ) (руб.)")
+    vv_responsibility_level = fields.Char(string="Уровень ответственности ВВ")
+    contract_work_cost = fields.Char(string="Стоимость работ по одному договору")
+    compensation_fund_odo_amount = fields.Float(string="Сумма взноса в Компенсационный Фонд обеспечения договорных обязательств (КФ ОДО) (руб.)")
+    odo_responsibility_level = fields.Char(string="Уровень ответственности ОДО")
+    max_obligation_amount = fields.Char(string="Предельный размер обязательств по договорам, заключаемым с использованием конкурентных способов заключения договоров")
+
+    # Руководство
+    executive_authority = fields.Char(string="Единоличный исполнительный орган/руководитель коллегиального испольнительного органа")
+
+    # Контактные данные
+    phone_sro = fields.Char(string="Контактные телефоны")
+    zip = fields.Char(string="Адрес (Индекс)")
+    country_id = fields.Many2one('res.country', string="Адрес (Страна)")
+    state_id = fields.Many2one('res.country.state', string="Адрес (Субъект РФ)")
+    city = fields.Char(string="Адрес (Населённый пункт)")
+    street = fields.Char(string="Адрес (Улица)")
+    street2 = fields.Char(string="Адрес (Дом)")
+
+    # Страхование
+    insurer_info = fields.Text(string="Сведения о страховщике") #СОЗДАТЬ МОДЕЛЬ с атрибутами, сделать связи one2many 
+    insurance_contract_number = fields.Char(string="Номер договора страхования")
+    insurance_contract_expiry = fields.Date(string="Срок действия договора страхования", widget="daterange")
+    insurance_amount = fields.Float(string="Страховая сумма (руб.)")
 
     # Связь One2many с sro.contacts
-    sro_contact_ids = fields.One2many('sro.contacts', 'partner_id', string="Сведения о членах СРО")
+    #sro_contact_ids = fields.One2many('sro.contacts', 'partner_id', string="Сведения о членах СРО")
     sro_contact2_ids = fields.One2many('sro.contacts.work', 'partner2_id', string="Права на выполнение работ")
     sro_contact3_ids = fields.One2many('sro.contacts.discipline', 'partner3_id', string="Дисциплинарные производства")
     sro_contact4_ids = fields.One2many('sro.contacts.inspection', 'partner4_id', string="Результаты проведения проверок")
     sro_contact5_ids = fields.One2many('sro.contacts.contract', 'partner5_id', string="Предложения подрядов")
-
+    #Метод для кнопки
+    def download_pdf(self):
+        return self.env.ref('ResPartner.report_ResPartner').report_action(self)

@@ -6,7 +6,7 @@
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
-             <!-- Скрываем форму "Contact / Address" -->
+            <!-- Скрываем встроенные поля -->
             <xpath expr="//div[@class='o_address_format']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
@@ -37,74 +37,144 @@
             <xpath expr="//field[@name='active_lang_count']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
+            <xpath expr="//span[@name='address_name']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
             <xpath expr="//field[@name='lang']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//field[@name='category_id']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
-
-
-
-
-
-
-
-            <!-- Добавляем связь sro_contact_ids в форму -->
-            <xpath expr="//div[@class='oe_title mb24']" position="inside"> <!--13 строка в форме Контакты-->
-                <field name="sro_contact_ids">
-                    <form>
-                        <group string="Регистрационные данные">
-                            <field name="registration_number"/>
-                            <field name="short_name"/>
-                            <field name="full_name"/>
-                            <field name="inn"/>
-                            <field name="ogrn"/>
-                            <field name="registration_date"/>
-                        </group>
-                    
-                        <group string="Сведения о членстве в СРО">
-                            <field name="sro_membership_compliance"/>
-                            <field name="sro_membership_status"/>
-                            <field name="sro_registration_date"/>
-                            <field name="sro_admission_basis"/>
-                        </group>
-
-                        <group string="Компенсационные фонды">
-                            <field name="compensation_fund_vv_amount"/>
-                            <field name="vv_responsibility_level"/>
-                            <field name="contract_work_cost"/>
-                            <field name="compensation_fund_odo_amount"/>
-                            <field name="odo_responsibility_level"/>
-                            <field name="max_obligation_amount"/>
-                        </group>
-
-                        <group string="Руководство">
-                            <field name="executive_authority"/>
-                        </group>
-
-                        <group string="Страхование">
-                            <field name="insurer_info"/>
-                            <field name="insurance_contract_number"/>
-                            <field name="insurance_contract_expiry" widget="daterange"/>
-                            <field name="insurance_amount"/>
-                        </group>
-                    
-                    </form>
-                </field>
+            <xpath expr="//page[@name='internal_notes']" position="attributes">
+                <attribute name="invisible">1</attribute>
             </xpath>
+            <xpath expr="//page[@name='sales_purchases']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>    
+            <xpath expr="//page[@name='contact_addresses']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='is_company']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='commercial_partner_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>   
+            <xpath expr="//field[@id='individual']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//field[@name='parent_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//group[@name='misc']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            
+
+       <!-- <group position="before">
+                <group col="2">
+                    <field name="registration_number" string="Регистрационный номер" 
+                        colors="red:name='registration_number'" readonly="1"
+                        style="font-size: 24px; font-weight: bold;"/>
+                    <field name="short_name" string="Сокращенное наименование" 
+                        colors="red:name='short_name'" readonly="1" 
+                        style="font-size: 24px; font-weight: bold;"/> 
+                </group>
+            </group>
+        -->
+            <group position="before">
+                <group col="2">
+                    <field name="create_date" string="Создано" readonly="1" widget="badge" options="{'class': 'badge-primary'}"/>
+                    <field name="write_date" string="Изменено" readonly="1" widget="badge" options="{'class': 'badge-info'}"/> 
+                </group>
+            </group>
+            
+            <group position="inside">
+                <group string="Регистрационные данные">
+                    <field string="Регистрационный номер" name="registration_number" placeholder="например, 21-С-0001-1209"/>
+                    <field name="short_name" placeholder="например, ООО 'СУ-Инкост'"/>
+                    <field name="full_name"/>
+                    <field name="inn"/>
+                    <field name="ogrn"/>
+                    <field name="registration_date"/>
+                </group>
+            </group>
+
+            <group position="inside">
+                <group string="Сведения о членстве">
+                    <field name="sro_membership_compliance" widget="dropdown" 
+                        decoration-danger="sro_membership_compliance == 'suspended'"
+                        decoration-success="sro_membership_compliance == 'active'"/>
+                    <field name="sro_membership_status" widget="dropdown"
+                        decoration-danger="sro_membership_status == 'suspended'"
+                        decoration-success="sro_membership_status == 'active'"/>
+                    <field name="sro_registration_date"/>
+                    <field name="sro_admission_basis"/>
+                </group>
+            </group>
+
+            <group position="inside">
+                <group string="Компенсационные фонды">
+                    <field name="compensation_fund_vv_amount"/>
+                    <field name="vv_responsibility_level" placeholder="например, Третий уровень ответсвтенности"/>
+                    <field name="contract_work_cost" placeholder="например, не превышает три миллиарда рублей"/>
+                    <field name="compensation_fund_odo_amount"/>
+                    <field name="odo_responsibility_level" placeholder="например, Третий уровень ответсвтенности"/>
+                    <field name="max_obligation_amount"/>
+                </group>
+            </group>
+
+            <group position="inside">
+                <group string="Руководство">
+                    <field name="executive_authority"/>
+                </group>
+            </group>
+
+            <group position="inside">
+                <group string="Контактные данные">
+                    <field name="phone_sro" placeholder="(8352) 640-328, факс: (8352) 640-343"/>
+                    <field name="zip" placeholder="например, 428003"/>
+                    <field name="country_id"/>
+                    <field name="state_id"/>
+                    <field name="city" placeholder="например, Чебоксары"/>
+                    <field name="street" placeholder="например, шоссе Марпосадское"/> 
+                    <field name="street2"/>
+                </group>
+            </group>
+
+            <group position="inside">
+                <group string="Страхование">
+                    <field name="insurer_info"/>
+                    <field name="insurance_contract_number"/>
+                    <field name="insurance_contract_expiry" widget="daterange"/>
+                    <field name="insurance_amount"/>
+                </group>
+            </group>
+
             <!--Наличие права на выполнение работ-->
             <xpath expr="//notebook" position="inside">
                 <page string="Наличие права на выполнение работ">
                     <field name="sro_contact2_ids">
                         <tree string="Сведения о наличии прав на выполнение работ">
-                            <field name="right_status"/>
+                            <field name="right_status" widget="dropdown"
+                        decoration-danger="right_status == 'suspended'"
+                        decoration-success="right_status == 'active'"/>
                             <field name="right_effective_date"/>
                             <field name="right_basis"/>
-                            <field name="construction_object"/>
-                            <field name="hazardous_objects"/>
-                            <field name="nuclear_objects"/>
-                            <field name="odo_right"/>
+                            <field name="construction_object" widget="dropdown"
+                        decoration-danger="construction_object == 'no'"
+                        decoration-success="construction_object == 'yes'"/>
+                            <field name="hazardous_objects" widget="dropdown"
+                        decoration-danger="hazardous_objects == 'no'"
+                        decoration-success="hazardous_objects == 'yes'"/>
+                            <field name="nuclear_objects" widget="dropdown"
+                        decoration-danger="nuclear_objects == 'no'"
+                        decoration-success="nuclear_objects == 'yes'"/>
+                            <field name="odo_right" widget="dropdown"
+                        decoration-danger="odo_right == 'no'"
+                        decoration-success="odo_right == 'yes'"/>
+                            
                         </tree>
                     </field>
                 </page>
