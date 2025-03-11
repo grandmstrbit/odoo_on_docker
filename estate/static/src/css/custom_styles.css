@@ -1,0 +1,19 @@
+.o_row {
+    display: flex;
+    gap: 10px; /* Отступ между полями */
+    align-items: center;
+}
+
+.badge-primary {
+    background-color: #007bff !important; /* Синий фон */
+    color: white !important;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+.badge-info {
+    background-color: #17a2b8 !important; /* Голубой фон */
+    color: white !important;
+    padding: 5px 10px;
+    border-radius: 5px;
+}

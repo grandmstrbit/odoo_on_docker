@@ -84,9 +84,11 @@
             </group>
         -->
             <group position="before">
-                <group col="2">
-                    <field name="create_date" string="Создано" readonly="1" widget="badge" options="{'class': 'badge-primary'}"/>
-                    <field name="write_date" string="Изменено" readonly="1" widget="badge" options="{'class': 'badge-info'}"/> 
+                <group colspan="2">
+                    <field name="create_date" readonly="1" widget="badge" options="{'class': 'badge-primary'}"/>
+                    <field name="write_date" readonly="1" widget="badge" options="{'class': 'badge-info'}"/>
+                    <button name="action_export_contact_docx" type="object"
+                        string="Скачать DOCX" class="oe_highlight"/> 
                 </group>
             </group>
             
@@ -121,7 +123,7 @@
                     <field name="contract_work_cost" placeholder="например, не превышает три миллиарда рублей"/>
                     <field name="compensation_fund_odo_amount"/>
                     <field name="odo_responsibility_level" placeholder="например, Третий уровень ответсвтенности"/>
-                    <field name="max_obligation_amount"/>
+                    <field name="max_obligation_amount" placeholder="например, не превышает три миллиарда рублей"/>
                 </group>
             </group>
 
@@ -145,9 +147,18 @@
 
             <group position="inside">
                 <group string="Страхование">
-                    <field name="insurer_info"/>
+                    <field name="insurer_info" 
+                        invisible="1"/>
+
+                    <field name="insurer_name" readonly="0"/>
+                    <field name="insurer_license_number" readonly="0"/>
+                    <field name="insurer_address" readonly="0"/>
+                    <field name="insurer_phone" readonly="0"/>
+                    <field name="insurer_website" readonly="0"/>
+                    <field name="insurer_email" readonly="0"/>
+
                     <field name="insurance_contract_number"/>
-                    <field name="insurance_contract_expiry" widget="daterange"/>
+                    <field name="insurance_contract_expiry"/>
                     <field name="insurance_amount"/>
                 </group>
             </group>
@@ -157,6 +168,11 @@
                 <page string="Наличие права на выполнение работ">
                     <field name="sro_contact2_ids">
                         <tree string="Сведения о наличии прав на выполнение работ">
+                            <button name="action_export_work_docx"
+                                type="object"
+                                string="Скачать DOCX"
+                                class="oe_highlight"/>
+                            <field name="number"/>
                             <field name="right_status" widget="dropdown"
                         decoration-danger="right_status == 'suspended'"
                         decoration-success="right_status == 'active'"/>
@@ -184,6 +200,10 @@
                 <page string="Сведения о дисциплинарных производствах">
                     <field name="sro_contact3_ids">
                         <tree string="Сведения о дисциплинарных производствах">
+                            <button name="action_export_discipline_docx"
+                                type="object"
+                                string="Скачать DOCX"
+                                class="oe_highlight"/>
                             <field name="disciplinary_basis"/>
                             <field name="disciplinary_start_date"/>
                             <field name="disciplinary_decision"/>
@@ -197,6 +217,7 @@
                 <page string="Сведения о результатах проведенных проверок">
                     <field name="sro_contact4_ids">
                         <tree string="Сведения о результатах проведенных проверок">
+                            <button name="action_export_inspection_docx" type="object" string="Скачать DOCX" class="oe_highlight"/>
                             <field name="inspection_member_number"/>
                             <field name="inspection_act_date"/>
                             <field name="inspection_month_year"/>
@@ -217,6 +238,7 @@
                 <page string="Предложения подрядов">
                     <field name="sro_contact5_ids">
                         <tree string="Предложения подрядов">
+                            <button name="action_export_contract_docx" type="object" string="Скачать DOCX" class="oe_highlight"/>
                             <field name="tender_type"/>
                             <field name="tender_description"/>
                             <field name="tender_contact_info"/>

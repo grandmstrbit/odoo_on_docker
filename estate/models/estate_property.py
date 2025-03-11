@@ -2,7 +2,9 @@ from dateutil.relativedelta import relativedelta
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare, float_is_zero
-
+import io
+import base64
+from docx import Document
 
 
 class EstateProperty(models.Model):
@@ -300,14 +302,14 @@ class SroContactsWork(models.Model):
     _name = 'sro.contacts.work'
     _description = "sro contacts work"
 
-    # Новые поля: Сведения о наличии прав на выполнение работ
+    # Сведения о наличии прав на выполнение работ
     number = fields.Integer(string="№")
     right_status = fields.Selection([
         ('active', 'Действует'),
         ('suspended', 'Прекращено'),
     ], string="Статус права")
     right_effective_date = fields.Date(string="Дата вступления решения в силу")
-    right_basis = fields.Char(string="Основание выдачи")
+    right_basis = fields.Char(string="Основание выдачи") # ССЫЛКА НА ДОКУМЕНТ
     construction_object = fields.Selection([
         ('yes', 'Да'),
         ('no', 'Нет'),
@@ -323,10 +325,60 @@ class SroContactsWork(models.Model):
     odo_right = fields.Selection([
         ('yes', 'Да'),
         ('no', 'Нет'),
-    ], string="Наличие права на ОДО", deafult="Правом не наделен")
+        ('draft', 'Правом не наделен'),
+    ], string="Наличие права на ОДО") # ДОБАВИТЬ ССЫЛКУ НА ПРОТОКОЛ
+    date_field = fields.Date()
 
-    partner2_id = fields.Many2one('res.partner', string='Выполнение работ')
+    partner2_id = fields.Many2one('res.partner', invisible=True)
 
+    @api.model
+    def create_record(self):
+        record = self.create({
+            'odo_right': 'draft',  # Устанавливаем значение в поле Selection
+            'date_field': date.today(),  # Устанавливаем текущую дату
+        })
+
+        return record
+
+    def action_export_work_docx(self):
+        """Генерирует DOCX-файл с данными о наличии прав на выполнение работ"""
+        self.ensure_one()  # Гарантируем, что метод вызывается для одной записи
+
+        doc = Document()
+        doc.add_heading(f'Сведения о праве на выполнение работ', level=1)
+
+        doc.add_paragraph(f"№: {self.number or '—'}")
+        doc.add_paragraph(f"Статус права: {dict(self._fields['right_status'].selection).get(self.right_status, '—')}")
+        doc.add_paragraph(f"Дата вступления в силу: {self.right_effective_date or '—'}")
+        doc.add_paragraph(f"Основание выдачи: {self.right_basis or '—'}")
+
+        doc.add_heading('Объекты работ', level=2)
+        doc.add_paragraph(f"Объект капитального строительства: {dict(self._fields['construction_object'].selection).get(self.construction_object, '—')}")
+        doc.add_paragraph(f"Особо опасные, технически сложные и уникальные объекты: {dict(self._fields['hazardous_objects'].selection).get(self.hazardous_objects, '—')}")
+        doc.add_paragraph(f"Объекты использования атомной энергии: {dict(self._fields['nuclear_objects'].selection).get(self.nuclear_objects, '—')}")
+
+        doc.add_heading('Право на ОДО', level=2)
+        doc.add_paragraph(f"Наличие права на ОДО: {dict(self._fields['odo_right'].selection).get(self.odo_right, '—')}")
+
+        # Сохраняем в память
+        buffer = io.BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+
+        # Кодируем файл в base64 и создаём вложение
+        attachment = self.env['ir.attachment'].create({
+            'name': f'Право_на_работу_{self.number}.docx',
+            'datas': base64.b64encode(buffer.getvalue()),
+            'res_model': 'sro.contacts.work',
+            'res_id': self.id,
+            'type': 'binary',
+        })
+
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/web/content/{attachment.id}?download=true',
+            'target': 'self',
+        }
 
 class SroContactsDiscipline(models.Model):
     _name = 'sro.contacts.discipline'
@@ -338,7 +390,39 @@ class SroContactsDiscipline(models.Model):
     disciplinary_decision = fields.Text(string="Решение дисциплинарной комиссии")
     disciplinary_decision_date = fields.Date(string="Дата решения дисциплинарной комиссии")
 
-    partner3_id = fields.Many2one('res.partner', string='Дисциплинарные производства')
+    partner3_id = fields.Many2one('res.partner', invisible=True)
+
+    def action_export_discipline_docx(self):
+        """Генерация DOCX с информацией о дисциплинарном производстве"""
+        self.ensure_one()
+
+        doc = Document()
+        doc.add_heading('Сведения о дисциплинарном производстве', level=1)
+
+        doc.add_paragraph(f"Основание открытия: {self.disciplinary_basis or '—'}")
+        doc.add_paragraph(f"Дата открытия: {self.disciplinary_start_date or '—'}")
+        doc.add_paragraph(f"Решение комиссии:\n{self.disciplinary_decision or '—'}")
+        doc.add_paragraph(f"Дата решения: {self.disciplinary_decision_date or '—'}")
+
+        # Сохраняем в память
+        buffer = io.BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+
+        # Создание вложения в Odoo
+        attachment = self.env['ir.attachment'].create({
+            'name': f"Сведения_о_дисциплинарном_производстве.docx",
+            'datas': base64.b64encode(buffer.getvalue()),
+            'res_model': 'sro.contacts.discipline',
+            'res_id': self.id,
+            'type': 'binary',
+        })
+
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/web/content/{attachment.id}?download=true',
+            'target': 'self',
+        }
 
 
 class SroContactsInspection(models.Model):
@@ -351,21 +435,61 @@ class SroContactsInspection(models.Model):
     inspection_month_year = fields.Date(string="Месяц, год проверки")
     inspection_type = fields.Selection([
         ('scheduled', 'Плановая'),
-        ('unscheduled', 'Внеплановая')
+        ('unscheduled', 'Внеплановая'),
     ], string="Вид проверки")
     inspection_form = fields.Selection([
         ('documentary', 'Документарная'),
-        ('onsite', 'Выездная')
+        ('onsite', 'Выездная'),
     ], string="Форма проверки")
     inspection_law_violations = fields.Text(string="Нарушения требований законодательства РФ о градостроительной деятельности, о техническом регулировании, Стандартов НОСТРОЙ")
     inspection_internal_violations = fields.Text(string="Нарушения внутренних документов и стандартов А 'СО 'СЧ'")
     inspection_contract_violations = fields.Text(string="Нарушение исполнения обязательств по договорам строительного подряда, заключенным с использованием конкурентных способов заключения договоров")
-    inspection_result = fields.Text(string="Результат проверки (итог)")
+    inspection_result = fields.Selection([
+        ('yes', 'Нарушения имеются'),
+        ('no', 'Нарушений не имеется'),
+        ('draft', 'Проверки не проводились'),
+    ], string="Результат проверки (итог)")
     inspection_disciplinary_measures = fields.Text(string="Применение мер дисциплинарного воздействия (итог)")
     inspection_measures_list = fields.Text(string="Перечень мер дисциплинарного воздействия")
 
-    partner4_id = fields.Many2one('res.partner', string='Проведенные проверки')
+    partner4_id = fields.Many2one('res.partner', invisible=True)
 
+    def action_export_inspection_docx(self):
+        """Генерация DOCX с данными о результатах проверки"""
+        doc = Document()
+        doc.add_heading('Сведения о результатах проведенной проверки', level=1)
+
+        doc.add_paragraph(f"Регистрационный номер члена: {self.inspection_member_number or '—'}")
+        doc.add_paragraph(f"Дата акта проверки: {self.inspection_act_date or '—'}")
+        doc.add_paragraph(f"Месяц, год проверки: {self.inspection_month_year or '—'}")
+        doc.add_paragraph(f"Вид проверки: {dict(self._fields['inspection_type'].selection).get(self.inspection_type, '—')}")
+        doc.add_paragraph(f"Форма проверки: {dict(self._fields['inspection_form'].selection).get(self.inspection_form, '—')}")
+        doc.add_paragraph(f"Нарушения законодательства: {self.inspection_law_violations or '—'}")
+        doc.add_paragraph(f"Нарушения внутренних документов: {self.inspection_internal_violations or '—'}")
+        doc.add_paragraph(f"Нарушение обязательств по договорам: {self.inspection_contract_violations or '—'}")
+        doc.add_paragraph(f"Результат проверки: {dict(self._fields['inspection_result'].selection).get(self.inspection_result, '—')}")
+        doc.add_paragraph(f"Меры дисциплинарного воздействия: {self.inspection_disciplinary_measures or '—'}")
+        doc.add_paragraph(f"Перечень мер дисциплинарного воздействия:\n{self.inspection_measures_list or '—'}")
+
+        # Сохраняем в память
+        buffer = io.BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+
+        # Создание вложения в Odoo
+        attachment = self.env['ir.attachment'].create({
+            'name': f"Сведения_о_результатах_проведенной_проверки.docx",
+            'datas': base64.b64encode(buffer.getvalue()),
+            'res_model': 'sro.contacts.inspection',
+            'res_id': self.id,
+            'type': 'binary',
+        })
+
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/web/content/{attachment.id}?download=true',
+            'target': 'self',
+        }
 
 class SroContactsContract(models.Model):
     _name = 'sro.contacts.contract'
@@ -374,17 +498,58 @@ class SroContactsContract(models.Model):
     # Новые поля: Предложения подрядов
     tender_type = fields.Selection([
         ('offer', 'Предложение подряда'),
-        ('search', 'Поиск подряда')
+        ('search', 'Поиск подряда'),
     ], string="Предложение или поиск подряда")
     tender_description = fields.Text(string="Описание подряда")
     tender_contact_info = fields.Text(string="Контактные данные")
     tender_member_number = fields.Char(string="Регистрационный номер члена")
     tender_short_name = fields.Char(string="Сокращенное наименование организации")
 
-    partner5_id = fields.Many2one('res.partner', string='Предложение подряда')
+    partner5_id = fields.Many2one('res.partner', invisible=True)
+
+    def action_export_contract_docx(self):
+        """Генерация DOCX с данными о результатах проверки"""
+        doc = Document()
+        doc.add_heading('Предложение подряда', level=1)
+
+        doc.add_paragraph(f"Предложение или поиск подряда: {dict(self._fields['tender_type'].selection).get(self.tender_type, '—')}")
+        doc.add_paragraph(f"Описание подряда: {self.tender_description or '—'}")
+        doc.add_paragraph(f"Контактные данные: {self.tender_contact_info or '—'}")
+        doc.add_paragraph(f"Регистрационный номер члена: {self.tender_member_number or '—'}")
+        doc.add_paragraph(f"Сокращённое наименование организации: {self.tender_short_name or '—'}")
+
+        # Сохраняем в память
+        buffer = io.BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+
+        # Создание вложения в Odoo
+        attachment = self.env['ir.attachment'].create({
+            'name': f"Предложение_подряда.docx",
+            'datas': base64.b64encode(buffer.getvalue()),
+            'res_model': 'sro.contacts.contract',
+            'res_id': self.id,
+            'type': 'binary',
+        })
+
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/web/content/{attachment.id}?download=true',
+            'target': 'self',
+        }
+
+class InsurerInfo(models.Model):
+    _name = "insurer.info"
+    _description = "insurer info"
+
+    name = fields.Char(string="Наименование организации")
+    license_number = fields.Char(string="№ Лицензии")
+    address = fields.Text(string="Адрес")
+    phone_insurer = fields.Char(string="Контактные телефоны")
+    website = fields.Char(string="Веб-сайт")
+    email = fields.Char(string="Электронная почта")
 
 
-    # Наследование модели res.partner
 class ResPartner(models.Model):
     _inherit = 'res.partner'
 
@@ -429,9 +594,17 @@ class ResPartner(models.Model):
     street2 = fields.Char(string="Адрес (Дом)")
 
     # Страхование
-    insurer_info = fields.Text(string="Сведения о страховщике") #СОЗДАТЬ МОДЕЛЬ с атрибутами, сделать связи one2many 
+    insurer_info = fields.Many2one('insurer.info', string="Сведения о страховщике") #СОЗДАТЬ МОДЕЛЬ с атрибутами, сделать связи one2many 
+    
+    insurer_name = fields.Char(string="Наименование организации", related='insurer_info.name', readonly=True)
+    insurer_license_number = fields.Char(string="№ Лицензии", related='insurer_info.license_number', readonly=True)
+    insurer_address = fields.Text(string="Адрес", related='insurer_info.address', readonly=True)
+    insurer_phone = fields.Char(string="Контактные телефоны", related='insurer_info.phone_insurer', readonly=True)
+    insurer_website = fields.Char(string="Веб-сайт", related='insurer_info.website', readonly=True)
+    insurer_email = fields.Char(string="Электронная почта", related='insurer_info.email', readonly=True)
+
     insurance_contract_number = fields.Char(string="Номер договора страхования")
-    insurance_contract_expiry = fields.Date(string="Срок действия договора страхования", widget="daterange")
+    insurance_contract_expiry = fields.Char(string="Срок действия договора страхования")
     insurance_amount = fields.Float(string="Страховая сумма (руб.)")
 
     # Связь One2many с sro.contacts
@@ -440,6 +613,78 @@ class ResPartner(models.Model):
     sro_contact3_ids = fields.One2many('sro.contacts.discipline', 'partner3_id', string="Дисциплинарные производства")
     sro_contact4_ids = fields.One2many('sro.contacts.inspection', 'partner4_id', string="Результаты проведения проверок")
     sro_contact5_ids = fields.One2many('sro.contacts.contract', 'partner5_id', string="Предложения подрядов")
-    #Метод для кнопки
-    def download_pdf(self):
-        return self.env.ref('ResPartner.report_ResPartner').report_action(self)
+
+    def action_export_contact_docx(self):
+        """Генерирует DOCX-файл с информацией о текущем контакте"""
+        self.ensure_one()  # Гарантируем, что метод вызывается для одного контакта
+
+        doc = Document()
+        doc.add_heading(f'Контактная информация: {self.name}', level=1)
+
+        # Основные регистрационные данные
+        doc.add_heading('Регистрационные данные', level=2)
+        doc.add_paragraph(f"Регистрационный номер: {self.registration_number or '—'}")
+        doc.add_paragraph(f"Сокращённое наименование: {self.short_name or '—'}")
+        doc.add_paragraph(f"Полное наименование: {self.full_name or '—'}")
+        doc.add_paragraph(f"ИНН: {self.inn or '—'}")
+        doc.add_paragraph(f"ОГРН: {self.ogrn or '—'}")
+        doc.add_paragraph(f"Дата гос. регистрации ЮЛ/ИП: {self.registration_date or '—'}")
+
+        # Членство в СРО
+        doc.add_heading('Членство в СРО', level=2)
+        doc.add_paragraph(f"Статус членства: {dict(self._fields['sro_membership_status'].selection).get(self.sro_membership_status, '—')}")
+        doc.add_paragraph(f"Сведения о соответствии члена СРО условиям членства, предусмотренным законодательством РФ и (или) внутренними документами СРО: {dict(self._fields['sro_membership_compliance'].selection).get(self.sro_membership_compliance, '—')}")
+        doc.add_paragraph(f"Дата регистрации в реестре СРО (внесения сведений в реестр): {self.sro_registration_date or '—'}")
+        doc.add_paragraph(f"Основание приёма в СРО: {self.sro_admission_basis or '—'}")
+
+        # Компенсационные фонды
+        doc.add_heading('Компенсационные фонды', level=2)
+        doc.add_paragraph(f"Сумма взноса в Компенсационный Фонд возмещения вреда (КФ ВВ) (руб.): {self.compensation_fund_vv_amount or '—'} руб.")
+        doc.add_paragraph(f"Уровень ответственности ВВ: {self.vv_responsibility_level or '—'}")
+        doc.add_paragraph(f"Стоимость работ по одному договору: {self.contract_work_cost or '—'}")
+        doc.add_paragraph(f"Сумма взноса в Компенсационный Фонд обеспечения договорных обязательств (КФ ОДО) (руб.): {self.compensation_fund_odo_amount or '—'} руб.")
+        doc.add_paragraph(f"Уровень ответственности ОДО: {self.odo_responsibility_level or '—'}")
+        doc.add_paragraph(f"Предельный размер обязательств по договорам, заключаемым с использованием конкурентных способов заключения договоров: {self.max_obligation_amount or '—'}")
+
+        # Руководство
+        doc.add_heading('Руководство', level=2)
+        doc.add_paragraph(f"Единоличный исполнительный орган/руководитель коллегиального исполнительного органа: {self.executive_authority or '—'}")
+
+        # Контактные данные
+        doc.add_heading('Контактные данные', level=2)
+        doc.add_paragraph(f"Контактный телефон: {self.phone_sro or '—'}")
+        doc.add_paragraph(f"Адрес: {self.zip or ''}, {self.country_id.name or ''}, {self.state_id.name or ''}, {self.city or ''}, {self.street or ''}")
+
+        # Страхование
+        doc.add_heading('Страхование', level=2)
+        doc.add_paragraph(f"Сведения о страховщике: {''}")
+        doc.add_paragraph(f"Наименование организации: {self.insurer_name or '—'}") 
+        doc.add_paragraph(f"№ Лицензии: {self.insurer_license_number or '—'}")
+        doc.add_paragraph(f"Адрес: {self.insurer_address or '—'}")
+        doc.add_paragraph(f"Контактные телефоны: {self.insurer_phone or '—'}")
+        doc.add_paragraph(f"Веб-сайт: {self.insurer_website or '—'}")
+        doc.add_paragraph(f"Электронная почта: {self.insurer_email or '—'}")
+
+        doc.add_paragraph(f"Номер договора страхования: {self.insurance_contract_number or '—'}")
+        doc.add_paragraph(f"Срок действия договора страхования: {self.insurance_contract_expiry or '—'}")
+        doc.add_paragraph(f"Страховая сумма (руб.): {self.insurance_amount or '—'} руб.")
+
+        # Сохраняем в память
+        buffer = io.BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+
+        # Кодируем файл в base64 и создаём вложение
+        attachment = self.env['ir.attachment'].create({
+            'name': f'Контакт_{self.name}.docx',
+            'datas': base64.b64encode(buffer.getvalue()),
+            'res_model': 'res.partner',
+            'res_id': self.id,
+            'type': 'binary',
+        })
+
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/web/content/{attachment.id}?download=true',
+            'target': 'self',
+        }
