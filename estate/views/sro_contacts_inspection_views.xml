@@ -1,0 +1,27 @@
+<odoo>
+
+	<record id="view_sro_contacts_inspection_form" model="ir.ui.view">
+	    <field name="name">sro.contacts.inspection.form</field>
+	    <field name="model">sro.contacts.inspection</field>
+	    <field name="arch" type="xml">
+	        <form string="SRO Contacts inspection">
+	            <group>
+	                <field name="inspection_member_number"/>
+	                <field name="inspection_act_date"/>
+	                <field name="inspection_month_year"/>
+	                <field name="inspection_type"/>
+	                <field name="inspection_form"/>
+	                <field name="inspection_law_violations"/>
+	                <field name="inspection_internal_violations"/>
+	                <field name="inspection_contract_violations"/>
+	                <field name="inspection_result"/>
+	                <field name="inspection_disciplinary_measures"/>
+	                <field name="inspection_measures_list"/>
+	            </group>
+	            <!-- Полностью удаляем поле -->
+	            <xpath expr="//field[@name='partner4_id']" position="replace"/>
+	        </form>
+	    </field>
+	</record>
+
+</odoo>

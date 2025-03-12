@@ -15,21 +15,12 @@
         "security/ir.model.access.csv",
 
          "views/res_partner_views.xml",
-
-    #    "views/estate_property_views.xml",
-    #    "views/estate_property_type_views.xml",
-    #    "views/estate_property_tags_views.xml",
-    #    "views/estate_property_offer_views.xml",
+         "views/sro_contacts_work_views.xml",
+         "views/sro_contacts_discipline_views.xml",
+         "views/sro_contacts_inspection_views.xml",
+         "views/sro_contacts_contract_views.xml",
     #    "views/res_users_views.xml",
-
-
-    #    "views/estate_property_menu.xml",
-    #    "views/estate_property_type_menu.xml",
-    #    "views/estate_property_tags_menu.xml",
-
-
-        
-        
+       
     ],
     "assets": {
         "web.assets_backend": [

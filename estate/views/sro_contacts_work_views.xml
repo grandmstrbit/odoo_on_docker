@@ -1,0 +1,25 @@
+<odoo>
+
+	<record id="view_sro_contacts_work_form" model="ir.ui.view">
+	    <field name="name">sro.contacts.work.form</field>
+	    <field name="model">sro.contacts.work</field>
+	    <field name="arch" type="xml">
+	        <form string="SRO Contacts Work">
+	            <group>
+	                <field name="number"/>
+	                <field name="right_status"/>
+	                <field name="right_effective_date"/>
+	                <field name="right_basis"/>
+	                <field name="construction_object"/>
+	                <field name="hazardous_objects"/>
+	                <field name="nuclear_objects"/>
+	                <field name="odo_right"/>
+	            </group>
+
+	            <!-- Полностью удаляем поле -->
+	            <xpath expr="//field[@name='partner2_id']" position="replace"/>
+	        </form>
+	    </field>
+	</record>
+
+</odoo>

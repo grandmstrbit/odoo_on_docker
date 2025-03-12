@@ -1,0 +1,21 @@
+<odoo>
+
+	<record id="view_sro_contacts_discipline_form" model="ir.ui.view">
+	    <field name="name">sro.contacts.discipline.form</field>
+	    <field name="model">sro.contacts.discipline</field>
+	    <field name="arch" type="xml">
+	        <form string="SRO Contacts discipline">
+	            <group>
+	                <field name="disciplinary_basis"/>
+	                <field name="disciplinary_start_date"/>
+	                <field name="disciplinary_decision"/>
+	                <field name="disciplinary_decision_date"/>
+	            </group>
+
+	            <!-- Полностью удаляем поле -->
+	            <xpath expr="//field[@name='partner3_id']" position="replace"/>
+	        </form>
+	    </field>
+	</record>
+
+</odoo>
