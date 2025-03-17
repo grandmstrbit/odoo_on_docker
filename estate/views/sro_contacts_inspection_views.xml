@@ -6,17 +6,22 @@
 	    <field name="arch" type="xml">
 	        <form string="SRO Contacts inspection">
 	            <group>
-	                <field name="inspection_member_number"/>
-	                <field name="inspection_act_date"/>
-	                <field name="inspection_month_year"/>
-	                <field name="inspection_type"/>
-	                <field name="inspection_form"/>
-	                <field name="inspection_law_violations"/>
-	                <field name="inspection_internal_violations"/>
-	                <field name="inspection_contract_violations"/>
-	                <field name="inspection_result"/>
-	                <field name="inspection_disciplinary_measures"/>
-	                <field name="inspection_measures_list"/>
+                        <!-- Галочка "Проводились проверки" -->
+                        <field name="inspections_conducted" string="Проверки не проводились:"/>
+                </group>
+	            <group>
+	                <field name="inspection_act_date" string="Дата акта проверки:"/>
+	                <field name="inspection_month_year" string="Месяц, год проверки:"/>
+	                <field name="inspection_type" string="Вид проверки:"/>
+	                <field name="inspection_form" string="Форма проверки:"/>
+	                <field name="inspection_law_violations" string="Нарушения требований законодательства РФ о градостроительной деятельности, о техническом регулировании, Стандартов НОСТРОЙ:"/>
+	                <field name="inspection_internal_violations" string="Нарушения внутренних документов и стандартов А «СО «СЧ»:"/>
+	                <field name="inspection_contract_violations" string="Нарушение исполнения обязательств по договорам строительного подряда, заключенным с использованием конкурентных способов заключения договоров:"/>
+	                <field name="inspection_result" string="Результат проверки (итог):" widget="dropdown"
+                        decoration-danger="inspection_result == 'yes'"
+                        decoration-success="inspection_result == 'no'"/>
+	                <field name="inspection_disciplinary_measures" string="Применение мер дисциплинарного воздействия (итог):"/>
+	                <field name="inspection_measures_list" string="Перечень мер дисциплинарного воздействия:"/>
 	            </group>
 	            <!-- Полностью удаляем поле -->
 	            <xpath expr="//field[@name='partner4_id']" position="replace"/>

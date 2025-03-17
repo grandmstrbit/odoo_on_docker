@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
     <!-- Форма (form view) для res.partner -->
-    <record id="view_partner_form_custom" model="ir.ui.view">
+    <record id="view_partner_company_form" model="ir.ui.view">
         <field name="name">res.partner.form.custom</field>
         <field name="model">res.partner</field>
+        <field name="priority" eval="20"/>
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
-            <!-- Скрываем встроенные поля -->
+        <!-- Скрываем встроенные поля, если это компания -->
+            <xpath expr="//form" position="attributes">
+                <attribute name="apply_on">"[('is_company', '=', True)]"</attribute>
+            </xpath>
             <xpath expr="//div[@class='o_address_format']" position="attributes">
                 <attribute name="invisible">is_company</attribute>
             </xpath>
@@ -16,14 +20,8 @@
             <xpath expr="//field[@name='function']" position="attributes">
                 <attribute name="invisible">is_company</attribute>
             </xpath>
-            <xpath expr="//field[@name='phone']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
-            </xpath>
-            <xpath expr="//field[@name='mobile']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
-            </xpath>
             <xpath expr="//field[@name='user_ids']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//field[@name='email']" position="attributes">
                 <attribute name="invisible">is_company</attribute>
@@ -35,63 +33,73 @@
                 <attribute name="invisible">is_company</attribute>
             </xpath>
             <xpath expr="//field[@name='active_lang_count']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//span[@name='address_name']" position="attributes">
                 <attribute name="invisible">is_company</attribute>
             </xpath>
             <xpath expr="//field[@name='lang']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//field[@name='category_id']" position="attributes">
                 <attribute name="invisible">is_company</attribute>
             </xpath>
             <xpath expr="//page[@name='internal_notes']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//page[@name='sales_purchases']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
-            </xpath>    
+                <attribute name="invisible">1</attribute>
+            </xpath>
             <xpath expr="//page[@name='contact_addresses']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
+                <attribute name="invisible">1</attribute>
+            </xpath>
+        <!--    <xpath expr="//page[@name='accounting']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>   УБРАТЬ "ВЫСТАВЛЕНИЕ СЧЕТОВ" МОЖНО ТОЛЬКО ПРИ СОЗДАНИИ НОВОЙ БД-->
+            <xpath expr="//field[@id='company']" position="attributes">
+                <attribute name="placeholder">"Введите регистрационный номер и наименование организации"</attribute>
             </xpath>
             <xpath expr="//field[@id='individual']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
+                <attribute name="placeholder">"Введите имя предпринимателя"</attribute>
             </xpath>
             <xpath expr="//field[@name='parent_id']" position="attributes">
                 <attribute name="invisible">is_company</attribute>
             </xpath>
             <xpath expr="//group[@name='misc']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
-            </xpath>
-            <xpath expr="//field[@name='is_company']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//field[@name='commercial_partner_id']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//field[@name='active']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//field[@name='company_id']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//field[@name='country_code']" position="attributes">
-                <attribute name="invisible">is_company</attribute>
+                <attribute name="invisible">1</attribute>
             </xpath>
-            
+           <xpath expr="//group/group[2]" position="attributes">
+                <attribute name="invisible">is_company</attribute>  
+            </xpath>
 
-            
-            
+            <xpath expr="//div[@class='o_row']" position="after">
+                <div class="o_row">
+                    <button name="action_export_contact_docx" type="object"
+                        string="Экспорт в файл" class="oe_highlight"
+                        style="float: right;"/> 
+                </div>            
+            </xpath>
             <group position="before">
                 <group colspan="1">
-                    <button name="action_export_contact_docx" type="object"
+                    <button name="action_export_contact_docx" type="object" invisible="1"
                         string="Экспорт в файл" class="oe_highlight"/> 
                 </group>
             </group>
             <group position="inside">
                 <group string="Регистрационные данные" invisible="not is_company">
-                    <field string="Регистрационный номер" name="registration_number" placeholder="например, 21-С-0001-1209"/>
+                    <field string="Регистрационный номер:" name="registration_number" placeholder="например, 21-С-0001-1209"/>
                     <field name="short_name" placeholder="например, ООО 'СУ-Инкост'"/>
                     <field name="full_name"/>
                     <field name="inn"/>
@@ -116,10 +124,10 @@
             <group position="inside">
                 <group string="Компенсационные фонды" invisible="not is_company">
                     <field name="compensation_fund_vv_amount"/>
-                    <field name="vv_responsibility_level" placeholder="например, Третий уровень ответсвтенности"/>
+                    <field name="vv_responsibility_level" placeholder="например, Третий уровень ответственности"/>
                     <field name="contract_work_cost" placeholder="например, не превышает три миллиарда рублей"/>
                     <field name="compensation_fund_odo_amount"/>
-                    <field name="odo_responsibility_level" placeholder="например, Третий уровень ответсвтенности"/>
+                    <field name="odo_responsibility_level" placeholder="например, Третий уровень ответственности"/>
                     <field name="max_obligation_amount" placeholder="например, не превышает три миллиарда рублей"/>
                 </group>
             </group>
@@ -132,35 +140,71 @@
 
             <group position="inside">
                 <group string="Контактные данные" invisible="not is_company">
-                    <field name="phone_sro" string="Контактные телефоны" placeholder="(8352) 640-328, факс: (8352) 640-343"/>
-                    <field name="zip" string="Адрес (Индекс)" placeholder="например, 428003"/>
-                    <field name="country_id" string="Адрес (Страна)"/>
-                    <field name="state_id" string="Адрес (Субъект РФ)"/>
-                    <field name="city" string="Адрес (Населённый пункт)" placeholder="например, Чебоксары"/>
-                    <field name="street" string="Адрес (Улица)" placeholder="например, шоссе Марпосадское"/> 
-                    <field name="street2" string="Адреc (Дом)"/>
-                    <field name="email" string="E-mail" widget="email" context="{'gravatar_image': True}" required="user_ids"/>
+                    <field name="phone_sro" widget="phone" string="Контактные телефоны:" placeholder="(8352) 640-328, факс: (8352) 640-343"/>
+                    <field name="zip" string="Адрес (Индекс):" placeholder="например, 428003"/>
+                    <field name="country_id" string="Адрес (Страна):"/>
+                    <field name="state_id" string="Адрес (Субъект РФ):"/>
+                    <field name="city" string="Адрес (Населённый пункт):" placeholder="например, Чебоксары"/>
+                    <field name="street" string="Адрес (Улица):" placeholder="например, шоссе Марпосадское"/> 
+                    <field name="street2" string="Адреc (Дом):"/>
+                    <field name="email" string="Email:" widget="email"/>
                 </group>
             </group>
 
             <group position="inside">
-                <group string="Сведения о страховщике" invisible="not is_company">
-                    <field name="insurer_info" 
-                        invisible="1"/>
-
-                    <field name="insurer_name" placeholder="введите наименование организации страховщика" readonly="0"/>
-                    <field name="insurer_license_number" placeholder="введите номер и дату" readonly="0"/>
-                    <field name="insurer_address" placeholder="введите индекс, город, улица, дом" readonly="0"/>
-                    <field name="insurer_phone" placeholder="введите номера" readonly="0"/>
-                    <field name="insurer_website" placeholder="введите веб-сайт" readonly="0"/>
-                    <field name="insurer_email" placeholder="введите e-mail" readonly="0"/>
-
-                    <field name="insurance_contract_number"/>
-                    <field name="insurance_contract_expiry"/>
-                    <field name="insurance_amount"/>
+                <group string="Сведения о страховании" invisible="not is_company">
+                    <span class="o_form_label o_td_label">
+                        <p invisible="not is_company">Сведения о страховщике</p>
+                    </span>
+                    <div class="o_address_format">
+                        <field name="insurer_name" placeholder="Введите наименование организации страховщика:" readonly="0"/>
+                        <field name="insurer_license_number" placeholder="Введите номер лицензии и дату:" readonly="0"/>
+                        <field name="insurer_address" placeholder="Введите адрес: индекс, город, улица, дом:" readonly="0"/>
+                        <field name="insurer_phone" widget="phone" placeholder="Введите контактные телефоны:" readonly="0"/>
+                        <field name="insurer_website" placeholder="Введите веб-сайт:" readonly="0"/>
+                        <field name="insurer_email" placeholder="Введите электронную почту:" readonly="0"/>
+                    </div>
+                    <field name="insurance_contract_number" placeholder="Номер договора" readonly="0"/>
+                    <field name="insurance_contract_expiry" placeholder="Срок действия" readonly="0"/>
+                    <field name="insurance_amount" placeholder="Страховая сумма" readonly="0"/>
                 </group>
             </group>
-
+            <!--
+            <group string="Сведения о страховании" invisible="not is_company">
+                    <span class="o_form_label o_td_label">
+                        <p style="min-width: 200px;" invisible="not is_company">Сведения о страховщике:</p>
+                    </span>
+                    <div class="o_address_format">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <p class="me-3 fw-bold" style="min-width: 200px;">Наименование организации:</p>
+                            <field name="insurer_name" class="flex-grow-1" placeholder="Введите наименование организации страховщика:" readonly="0"/>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <p class="me-3 fw-bold" style="min-width: 200px;">№ Лицензии:</p>
+                            <field name="insurer_license_number" class="flex-grow-1" placeholder="Введите номер лицензии и дату:" readonly="0"/>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <p class="me-3 fw-bold" style="min-width: 200px;">Адрес:</p>
+                            <field name="insurer_address" class="flex-grow-1" placeholder="Введите адрес: индекс, город, улица, дом:" readonly="0"/>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <p class="me-3 fw-bold" style="min-width: 200px;">Контактные телефоны:</p>
+                            <field name="insurer_phone" class="flex-grow-1" widget="phone" placeholder="Введите контактные телефоны:" readonly="0"/>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <p class="me-3 fw-bold" style="min-width: 200px;">Веб-сайт:</p>
+                            <field name="insurer_website" class="flex-grow-1" placeholder="Введите веб-сайт:" readonly="0"/>
+                        </div>
+                        <div class="d-flex align-items-center justify-content-between">
+                            <p class="me-3 fw-bold" style="min-width: 200px;">Электронная почта:</p>
+                            <field name="insurer_email" class="flex-grow-1" placeholder="Введите электронную почту:" readonly="0"/>
+                        </div>
+                    </div>
+                    <field name="insurance_contract_number" placeholder="Номер договора" readonly="0"/>
+                    <field name="insurance_contract_expiry" placeholder="Срок действия" readonly="0"/>
+                    <field name="insurance_amount" placeholder="Страховая сумма" readonly="0"/>
+                </group>
+            -->
             <!--Наличие права на выполнение работ-->
             <xpath expr="//notebook" position="inside">
                 <page string="Наличие права на выполнение работ" invisible="not is_company">
@@ -175,7 +219,7 @@
                         decoration-danger="right_status == 'suspended'"
                         decoration-success="right_status == 'active'"/>
                             <field name="right_effective_date"/>
-                            <field name="right_basis"/>
+                            <field name="right_basis" string="Основание выдачи (Документ №)"/>
                             <field name="construction_object" widget="dropdown"
                         decoration-danger="construction_object == 'no'"
                         decoration-success="construction_object == 'yes'"/>
@@ -187,7 +231,7 @@
                         decoration-success="nuclear_objects == 'yes'"/>
                             <field name="odo_right" widget="dropdown"
                         decoration-danger="odo_right == 'no'"
-                        decoration-success="odo_right == 'yes'"/>
+                        decoration-success="odo_right == 'yes'" string="Наличие права на ОДО (Дата вступления решения в силу, Документ №)"/>
                         </tree>
                     </field>
                 </page>
@@ -201,6 +245,7 @@
                                 type="object"
                                 string="Экспорт в файл"
                                 class="oe_highlight"/>
+                            <field name="discipline_message" readonly="1" nolabel="1"/>
                             <field name="disciplinary_basis"/>
                             <field name="disciplinary_start_date"/>
                             <field name="disciplinary_decision"/>
@@ -215,8 +260,6 @@
                     <field name="sro_contact4_ids">
                         <tree string="Сведения о результатах проведенных проверок">
                             <button name="action_export_inspection_docx" type="object" string="Экспорт в файл" class="oe_highlight"/>
-                            <field name="inspection_result" widget="radio" options="{'horizontal': true}"/>
-                            <field name="inspection_member_number"/>
                             <field name="inspection_act_date"/>
                             <field name="inspection_month_year"/>
                             <field name="inspection_type"/>
@@ -224,6 +267,9 @@
                             <field name="inspection_law_violations"/>
                             <field name="inspection_internal_violations"/>
                             <field name="inspection_contract_violations"/>
+                            <field name="inspection_result" widget="dropdown"
+                        decoration-danger="inspection_result == 'yes'"
+                        decoration-success="inspection_result == 'no'"/>
                             <field name="inspection_disciplinary_measures"/>
                             <field name="inspection_measures_list"/>
                         </tree>
@@ -235,7 +281,7 @@
                 <page string="Предложения подрядов" invisible="not is_company">
                     <field name="sro_contact5_ids">
                         <tree string="Предложения подрядов">
-                            <button name="action_export_contract_docx" type="object" string="Экспорт в файл" class="oe_highlight"/>
+                            <button name="action_export_contract_docx" type="object" string="Экспорт в файл" class="oe_highlight" invisible="1"/>
                             <field name="tender_type"/>
                             <field name="tender_description"/>
                             <field name="tender_contact_info"/>

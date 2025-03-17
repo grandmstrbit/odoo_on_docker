@@ -6,11 +6,12 @@
 	    <field name="arch" type="xml">
 	        <form string="SRO Contacts Contract">
 	            <group>
-	                <field name="tender_type"/>
-	                <field name="tender_description"/>
-	                <field name="tender_contact_info"/>
-	                <field name="tender_member_number"/>
-	                <field name="tender_short_name"/>
+	                <field name="tender_type" string="Предложение или поиск подряда:"/>
+	                <field name="tender_description" string="Описание подряда:"/>
+	                <field name="tender_contact_info" string="Контактные данные:"/>
+	                <field name="tender_member_number" string="Регистрационный номер члена:"/>
+	                <field name="tender_short_name" string="Сокращенное наименование организации:"/>
+	                
 	            </group>
 	            <!-- Полностью удаляем поле -->
 	            <xpath expr="//field[@name='partner5_id']" position="replace"/>

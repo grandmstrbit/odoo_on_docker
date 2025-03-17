@@ -6,10 +6,16 @@
 	    <field name="arch" type="xml">
 	        <form string="SRO Contacts discipline">
 	            <group>
-	                <field name="disciplinary_basis"/>
-	                <field name="disciplinary_start_date"/>
-	                <field name="disciplinary_decision"/>
-	                <field name="disciplinary_decision_date"/>
+                    <field name="is_discipline" string="Сведений нет:"/>
+                </group>
+                <group>
+                    <field name="discipline_message" readonly="1" nolabel="1"/>
+                </group>
+	            <group>
+	                <field name="disciplinary_basis" string="Основание открытия дисциплинарного производства:"/>
+	                <field name="disciplinary_start_date" string="Дата открытия дисциплинарного производства:"/>
+	                <field name="disciplinary_decision" string="Решение дисциплинарной комиссии:"/>
+	                <field name="disciplinary_decision_date" string="Дата решения дисциплинарной комиссии:"/>
 	            </group>
 
 	            <!-- Полностью удаляем поле -->
