@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template id="report_template">
+    <t t-call="web.external_layout">
+        <div class="page">
+            <h2>Отчет по <t t-esc="object.name"/></h2>
+            <p>Дата создания: <t t-esc="object.create_date"/></p>
+        </div>
+    </t>
+</template>

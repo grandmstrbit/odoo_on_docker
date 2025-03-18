@@ -1,0 +1,39 @@
+<odoo>
+
+	<record id="view_sro_contacts_work_form" model="ir.ui.view">
+	    <field name="name">sro.contacts.work.form</field>
+	    <field name="model">sro.contacts.work</field>
+	    <field name="arch" type="xml">
+	        <form string="SRO Contacts Work">
+	            <group>
+                        <!-- Галочка "Право на выполнение работ" -->
+                    <field name="has_work_rights" string="Правом не наделен:"/>
+				</group>
+	            <group>
+	                <field name="number" string="№:"/>
+	                <field name="right_status" string="Статус права:" widget="dropdown"
+                        decoration-danger="right_status == 'suspended'"
+                        decoration-success="right_status == 'active'"/>
+	                <field name="right_effective_date" string="Дата вступления решения в силу:"/>
+	                <field name="right_basis" string="Основание выдачи (Документ №):"/>
+	                <field name="construction_object" string="Объект капитального строительства:" widget="dropdown"
+                        decoration-danger="construction_object == 'no'"
+                        decoration-success="construction_object == 'yes'"/>/>
+	                <field name="hazardous_objects" string="Особо опасные, технически сложные и уникальные объекты:" widget="dropdown"
+                        decoration-danger="hazardous_objects == 'no'"
+                        decoration-success="hazardous_objects == 'yes'"/>
+	                <field name="nuclear_objects" string="Объекты использования атомной энергии:" widget="dropdown"
+                        decoration-danger="nuclear_objects == 'no'"
+                        decoration-success="nuclear_objects == 'yes'"/>
+	                <field name="odo_right" widget="dropdown"
+                        decoration-danger="odo_right == 'no'"
+                        decoration-success="odo_right == 'yes'" string="Наличие права на ОДО (Дата вступления решения в силу, Документ №):"/>
+	            </group>
+
+	            <!-- Полностью удаляем поле -->
+	            <xpath expr="//field[@name='partner2_id']" position="replace"/>
+	        </form>
+	    </field>
+	</record>
+
+</odoo>
