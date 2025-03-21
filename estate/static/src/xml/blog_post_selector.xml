@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="estate.BlogPostSelector">
+        <div class="o_blog_post_selector">
+            <select t-on-change="onPostSelected">
+                <option value="">Выберите пост</option>
+                <t t-if="state.choices.length">
+                    <t t-foreach="state.choices" t-as="post">
+                        <option t-att-value="post.id" t-esc="post.name"/>
+                    </t>
+                </t>
+                <t t-if="post">
+                    <span>Selected Post: <t t-esc="post.name"/></span>
+                </t>
+                <t t-else="">
+                    <span>Нет доступных постов</span>
+                </t>
+            </select>
+            <t t-if="blogUrl">
+                <a t-att-href="blogUrl" target="_blank">Открыть пост</a>
+            </t>
+        </div>
+    </t>
+</templates>

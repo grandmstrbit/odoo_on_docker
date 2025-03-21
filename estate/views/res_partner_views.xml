@@ -53,11 +53,11 @@
             <xpath expr="//page[@name='contact_addresses']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
-        <!--    <xpath expr="//page[@name='accounting']" position="attributes">
+        <!--<xpath expr="//page[@name='accounting']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>   УБРАТЬ "ВЫСТАВЛЕНИЕ СЧЕТОВ" МОЖНО ТОЛЬКО ПРИ СОЗДАНИИ НОВОЙ БД-->
             <xpath expr="//field[@id='company']" position="attributes">
-                <attribute name="placeholder">"Введите регистрационный номер и наименование организации"</attribute>
+                <attribute name="placeholder">"Введите наименование организации и регистрационный номер"</attribute>
             </xpath>
             <xpath expr="//field[@id='individual']" position="attributes">
                 <attribute name="placeholder">"Введите имя предпринимателя"</attribute>
@@ -88,7 +88,7 @@
                 <div class="o_row">
                     <button name="action_export_contact_docx" type="object"
                         string="Экспорт в файл" class="oe_highlight"
-                        style="float: right;"/> 
+                        style="float: right;" invisible="not is_company"/> 
                 </div>            
             </xpath>
             <group position="before">
@@ -100,7 +100,7 @@
             <group position="inside">
                 <group string="Регистрационные данные" invisible="not is_company">
                     <field string="Регистрационный номер:" name="registration_number" placeholder="например, 21-С-0001-1209"/>
-                    <field name="short_name" placeholder="например, ООО 'СУ-Инкост'"/>
+                    <field name="short_name" placeholder='например, ООО "СУ-Инкост"'/>
                     <field name="full_name"/>
                     <field name="inn"/>
                     <field name="ogrn"/>
@@ -118,6 +118,19 @@
                         decoration-success="sro_membership_status == 'active'"/>
                     <field name="sro_registration_date"/>
                     <field name="sro_admission_basis"/>
+                    <field name="sro_admission_basis_url" 
+                           string="Основание приема в СРО" 
+                           widget="url" 
+                           readonly="1"/>
+
+                    <field name="show_termination_fields" invisible="1"/>
+                    <field name="termination_date" invisible="show_termination_fields == False"/>
+                    <field name="termination_reason" widget="many2one" invisible="show_termination_fields == False"/>
+                    <field name="termination_reason_url" invisible="show_termination_fields == False"
+                            string="Основание прекращения членства"
+                            widget="url"
+                            readonly="1"/>
+                    <field name="termination_info" invisible="show_termination_fields == False"/>
                 </group>
             </group>
 
@@ -134,19 +147,23 @@
 
             <group position="inside">
                 <group string="Руководство" invisible="not is_company">
-                    <field name="executive_authority"/>
+                    <field name="executive_authority" placeholder="введите должность и ФИО"/>
                 </group>
             </group>
 
             <group position="inside">
                 <group string="Контактные данные" invisible="not is_company">
                     <field name="phone_sro" widget="phone" string="Контактные телефоны:" placeholder="(8352) 640-328, факс: (8352) 640-343"/>
+                    <field name="custom_website" placeholder="www.zavodenergomash.com"/>
                     <field name="zip" string="Адрес (Индекс):" placeholder="например, 428003"/>
                     <field name="country_id" string="Адрес (Страна):"/>
                     <field name="state_id" string="Адрес (Субъект РФ):"/>
+                    <field name="hood" string="Адрес (Район):"/>
                     <field name="city" string="Адрес (Населённый пункт):" placeholder="например, Чебоксары"/>
                     <field name="street" string="Адрес (Улица):" placeholder="например, шоссе Марпосадское"/> 
                     <field name="street2" string="Адреc (Дом):"/>
+                    <field name="corps" string="Адрес (Корпус/строение):"/>
+                    <field name="premises" string="Адрес (Помещение):"/>
                     <field name="email" string="Email:" widget="email"/>
                 </group>
             </group>
@@ -154,7 +171,7 @@
             <group position="inside">
                 <group string="Сведения о страховании" invisible="not is_company">
                     <span class="o_form_label o_td_label">
-                        <p invisible="not is_company">Сведения о страховщике</p>
+                        <p invisible="not is_company">Сведения о страховщике:</p>
                     </span>
                     <div class="o_address_format">
                         <field name="insurer_name" placeholder="Введите наименование организации страховщика:" readonly="0"/>
@@ -260,18 +277,13 @@
                     <field name="sro_contact4_ids">
                         <tree string="Сведения о результатах проведенных проверок">
                             <button name="action_export_inspection_docx" type="object" string="Экспорт в файл" class="oe_highlight"/>
+                            <field name="inspection_name" string="Заголовок"/>
                             <field name="inspection_act_date"/>
                             <field name="inspection_month_year"/>
-                            <field name="inspection_type"/>
-                            <field name="inspection_form"/>
-                            <field name="inspection_law_violations"/>
-                            <field name="inspection_internal_violations"/>
-                            <field name="inspection_contract_violations"/>
+                            <field name="inspection_measures_list"/>
                             <field name="inspection_result" widget="dropdown"
                         decoration-danger="inspection_result == 'yes'"
                         decoration-success="inspection_result == 'no'"/>
-                            <field name="inspection_disciplinary_measures"/>
-                            <field name="inspection_measures_list"/>
                         </tree>
                     </field>
                 </page>
@@ -281,12 +293,24 @@
                 <page string="Предложения подрядов" invisible="not is_company">
                     <field name="sro_contact5_ids">
                         <tree string="Предложения подрядов">
-                            <button name="action_export_contract_docx" type="object" string="Экспорт в файл" class="oe_highlight" invisible="1"/>
+                            <button name="action_export_contract_docx" type="object" string="Экспорт в файл" class="oe_highlight" invisible="0"/>
                             <field name="tender_type"/>
                             <field name="tender_description"/>
                             <field name="tender_contact_info"/>
-                            <field name="tender_member_number"/>
-                            <field name="tender_short_name"/>
+
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Сведения о приостановлении/возобновлении действия права выполнять строительсвто, реконструкцию, капиатльный ремонт объектов капитального строительства" invisible="not is_company">
+                    <field name="sro_contact6_ids">
+                        <tree string="Сведения о приостановлении/возобновлении действия права выполнять строительсвто, реконструкцию, капиатльный ремонт объектов капитального строительства">
+                            <button name="action_export_construction_docx" type="object" string="Экспорт в файл" class="oe_highlight" invisible="0"/>
+                            <field name="number" string="№"/>
+                            <field name="decision_date" string="Дата решения"/>
+                            <field name="management_decision" string="Решение органов управления (право)"/>
+                            <field name="decision_basis" string="Основание решения"/>
                         </tree>
                     </field>
                 </page>

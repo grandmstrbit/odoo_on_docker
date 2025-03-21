@@ -9,7 +9,9 @@
     "summary": "SRO Contacts",
     "application": True, 
     "depends": [
-        
+        "hr",
+        "website_blog",
+        "web"
         ],
     "data": [
         "security/ir.model.access.csv",
@@ -19,22 +21,17 @@
          "views/sro_contacts_discipline_views.xml",
          "views/sro_contacts_inspection_views.xml",
          "views/sro_contacts_contract_views.xml",
-    #    "views/res_users_views.xml",
+         "views/sro_contacts_construction.xml",
+         "views/hr_employee.xml",
+         "views/sro_contacts_inspection_menu.xml",
+
        
     ],
     "assets": {
         "web.assets_backend": [
-    #        "estate/static/src/js/offer_button.js",
-    #        "estate/static/src/js/offer_button_registry.js",
-    #                   
-    #        
-    #        "estate/static/src/js/dashboard.js",
-    #        "estate/static/src/js/dashboard_registry.js",
-    #        
-    #        "estate/static/src/xml/offer_button.xml",
-    #        "estate/static/src/xml/dashboard.xml",
-    #
-    #        "estate/static/src/css/dashboard.css", 
+        #    "estate/static/src/js/blog_post_selector.js",
+        #    "estate/static/src/xml/blog_post_selector.xml",
+        #    "estate/static/src/css/blog_post_opener.css",
         ]
     }
 }

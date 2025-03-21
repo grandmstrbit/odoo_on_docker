@@ -1,0 +1,13 @@
+<odoo>
+
+    <menuitem id="sro_inpsection" 
+              name="Результаты проверок деятельности членов  А «СО «СЧ»"
+    />
+    
+    <menuitem id="sro_inpsection_page" 
+              name="Сводный отчет" 
+              parent="sro_inpsection"
+              action="action_sro_inspection"
+    />
+
+</odoo>

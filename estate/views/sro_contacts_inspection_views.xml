@@ -1,32 +1,55 @@
 <odoo>
 
+	<record id="view_sro_contacts_inspection_tree" model="ir.ui.view">
+        <field name="name">sro.contacts.inspection.tree</field>
+        <field name="model">sro.contacts.inspection</field>
+        <field name="arch" type="xml">
+            <tree string="Сведения о проверках" default_order="inspection_number asc">
+            	<field name="inspection_number"/>
+            	<field name="inspection_short_name"/>
+                <field name="inspection_name" string="Заголовок"/>
+                <field name="inspection_act_date" string="Дата решения"/>
+                <field name="inspection_month_year" string="Месяц, год проверки"/>
+                <field name="inspection_result" string="Результат проверки"
+                    decoration-danger="inspection_result == 'yes'"
+                    decoration-success="inspection_result == 'no'"/>
+            </tree>
+        </field>
+    </record>
+
 	<record id="view_sro_contacts_inspection_form" model="ir.ui.view">
 	    <field name="name">sro.contacts.inspection.form</field>
 	    <field name="model">sro.contacts.inspection</field>
 	    <field name="arch" type="xml">
-	        <form string="SRO Contacts inspection">
-	            <group>
-                        <!-- Галочка "Проводились проверки" -->
-                        <field name="inspections_conducted" string="Проверки не проводились:"/>
-                </group>
-	            <group>
-	                <field name="inspection_act_date" string="Дата акта проверки:"/>
-	                <field name="inspection_month_year" string="Месяц, год проверки:"/>
-	                <field name="inspection_type" string="Вид проверки:"/>
-	                <field name="inspection_form" string="Форма проверки:"/>
-	                <field name="inspection_law_violations" string="Нарушения требований законодательства РФ о градостроительной деятельности, о техническом регулировании, Стандартов НОСТРОЙ:"/>
-	                <field name="inspection_internal_violations" string="Нарушения внутренних документов и стандартов А «СО «СЧ»:"/>
-	                <field name="inspection_contract_violations" string="Нарушение исполнения обязательств по договорам строительного подряда, заключенным с использованием конкурентных способов заключения договоров:"/>
-	                <field name="inspection_result" string="Результат проверки (итог):" widget="dropdown"
-                        decoration-danger="inspection_result == 'yes'"
-                        decoration-success="inspection_result == 'no'"/>
-	                <field name="inspection_disciplinary_measures" string="Применение мер дисциплинарного воздействия (итог):"/>
-	                <field name="inspection_measures_list" string="Перечень мер дисциплинарного воздействия:"/>
-	            </group>
+	        <form string="Акт проверки" default_order="inspection_number asc">
+		        <sheet>
+		            <group>
+		            	<field name="inspection_name" string="Заголовок:"/>
+		            	<field name="inspection_short_name" invisible="1"/>
+		            	<field name="inspection_member_number" string="Регистрационный номер члена:" invisible="0"/>
+		                <field name="inspection_act_date" string="Дата акта проверки:"/>
+		                <field name="inspection_month_year" string="Месяц, год проверки:"/>
+		                <field name="inspection_type" string="Вид проверки:"/>
+		                <field name="inspection_form" string="Форма проверки:"/>
+		                <field name="inspection_law_violations" string="Нарушения требований законодательства РФ о градостроительной деятельности, о техническом регулировании, Стандартов НОСТРОЙ:"/>
+		                <field name="inspection_internal_violations" string="Нарушения внутренних документов и стандартов А «СО «СЧ»:"/>
+		                <field name="inspection_contract_violations" string="Нарушение исполнения обязательств по договорам строительного подряда, заключенным с использованием конкурентных способов заключения договоров:"/>
+		                <field name="inspection_result" string="Результат проверки (итог):"/>
+		                <field name="inspection_disciplinary_measures" string="Применение мер дисциплинарного воздействия (итог):"/>
+		                <field name="inspection_measures_list" string="Перечень мер дисциплинарного воздействия:"/>
+		            </group>
+		        </sheet>
 	            <!-- Полностью удаляем поле -->
 	            <xpath expr="//field[@name='partner4_id']" position="replace"/>
 	        </form>
 	    </field>
+	</record>
+
+
+		<record id="action_sro_inspection" model="ir.actions.act_window">
+		<field name="name">Сводный отчет контрольного комитета</field>
+		<field name="res_model">sro.contacts.inspection</field>
+		<field name="view_mode">tree,form,kanban</field>
 	</record>
 
 </odoo>

@@ -5,3 +5,5 @@ estate.access_sro_contacts_work,access_sro_contacts_work,estate.model_sro_contac
 estate.access_sro_contacts_discipline,access_sro_contacts_discipline,estate.model_sro_contacts_discipline,base.group_user,1,1,1,1
 estate.access_sro_contacts_inspection,access_sro_contacts_inspection,estate.model_sro_contacts_inspection,base.group_user,1,1,1,1
 estate.access_sro_contacts_contract,access_sro_contacts_contract,estate.model_sro_contacts_contract,base.group_user,1,1,1,1
+estate.access_sro_contacts_construction,access_sro_contacts_construction,estate.model_sro_contacts_construction,base.group_user,1,1,1,1
+access_blog_post,Access to Blog Post,website_blog.model_blog_post,,1,1,1,1

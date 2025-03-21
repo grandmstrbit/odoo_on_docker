@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="estate.EditableBadgeTemplate">
+        <div class="badge" t-att-class="state.value">
+            <select t-ref="select" t-att-value="state.value" t-on-change="onChange" class="badge-select">
+                <t t-foreach="props.record.fields[props.name].selection" t-as="option">
+                    <option t-att-value="option[0]" t-esc="option[1]"/>
+                </t>
+            </select>
+        </div>
+    </t>
+</templates>
