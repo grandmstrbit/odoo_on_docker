@@ -1,12 +1,13 @@
 <odoo>
 
-    <menuitem id="sro_inpsection" 
+    <menuitem id="sro_inspection" 
               name="Результаты проверок деятельности членов  А «СО «СЧ»"
+              parent="contacts.menu_contacts"
     />
     
     <menuitem id="sro_inpsection_page" 
               name="Сводный отчет" 
-              parent="sro_inpsection"
+              parent="sro_inspection"
               action="action_sro_inspection"
     />
 

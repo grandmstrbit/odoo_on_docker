@@ -5,7 +5,6 @@
     'version': '17.0.1.0.0',
     "license": "LGPL-3",
     "category": "Contacts",
-    'website': 'https://asoft21.ru',
     "summary": "SRO Contacts",
     "application": True, 
     "depends": [
@@ -17,6 +16,7 @@
         "security/ir.model.access.csv",
 
          "views/res_partner_views.xml",
+        # "views/sro_admission_basis_template.xml",
          "views/sro_contacts_work_views.xml",
          "views/sro_contacts_discipline_views.xml",
          "views/sro_contacts_inspection_views.xml",
@@ -29,9 +29,8 @@
     ],
     "assets": {
         "web.assets_backend": [
-        #    "estate/static/src/js/blog_post_selector.js",
-        #    "estate/static/src/xml/blog_post_selector.xml",
-        #    "estate/static/src/css/blog_post_opener.css",
+        #    "estate/static/src/js/sro_admission_basis.js",
+        #    "estate/static/src/xml/sro_admission_basis_render.xml",
         ]
     }
 }

@@ -117,19 +117,12 @@
                         decoration-danger="sro_membership_status == 'suspended'"
                         decoration-success="sro_membership_status == 'active'"/>
                     <field name="sro_registration_date"/>
-                    <field name="sro_admission_basis"/>
-                    <field name="sro_admission_basis_url" 
-                           string="Основание приема в СРО" 
-                           widget="url" 
-                           readonly="1"/>
-
+                    <field name="sro_admission_basis" string="Основание приема в СРО:"/>
+                    <field name="sro_admission_basis_link" widget="html"/>
                     <field name="show_termination_fields" invisible="1"/>
                     <field name="termination_date" invisible="show_termination_fields == False"/>
                     <field name="termination_reason" widget="many2one" invisible="show_termination_fields == False"/>
-                    <field name="termination_reason_url" invisible="show_termination_fields == False"
-                            string="Основание прекращения членства"
-                            widget="url"
-                            readonly="1"/>
+                    <field name="termination_reason_link" invisible="show_termination_fields == False" widget="html"/>
                     <field name="termination_info" invisible="show_termination_fields == False"/>
                 </group>
             </group>
@@ -154,7 +147,7 @@
             <group position="inside">
                 <group string="Контактные данные" invisible="not is_company">
                     <field name="phone_sro" widget="phone" string="Контактные телефоны:" placeholder="(8352) 640-328, факс: (8352) 640-343"/>
-                    <field name="custom_website" placeholder="www.zavodenergomash.com"/>
+                    <field name="custom_website" placeholder="например, www.example.com" widget="url"/>
                     <field name="zip" string="Адрес (Индекс):" placeholder="например, 428003"/>
                     <field name="country_id" string="Адрес (Страна):"/>
                     <field name="state_id" string="Адрес (Субъект РФ):"/>
@@ -236,7 +229,7 @@
                         decoration-danger="right_status == 'suspended'"
                         decoration-success="right_status == 'active'"/>
                             <field name="right_effective_date"/>
-                            <field name="right_basis" string="Основание выдачи (Документ №)"/>
+                            <field name="right_basis_url" string="Основание выдачи (Документ №)"/>
                             <field name="construction_object" widget="dropdown"
                         decoration-danger="construction_object == 'no'"
                         decoration-success="construction_object == 'yes'"/>
@@ -246,9 +239,8 @@
                             <field name="nuclear_objects" widget="dropdown"
                         decoration-danger="nuclear_objects == 'no'"
                         decoration-success="nuclear_objects == 'yes'"/>
-                            <field name="odo_right" widget="dropdown"
-                        decoration-danger="odo_right == 'no'"
-                        decoration-success="odo_right == 'yes'" string="Наличие права на ОДО (Дата вступления решения в силу, Документ №)"/>
+                            <field name="odo_combined_info" string="Наличие права на ОДО (Дата вступления решения в силу, Документ №)" widget="html"/>
+
                         </tree>
                     </field>
                 </page>

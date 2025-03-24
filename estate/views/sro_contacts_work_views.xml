@@ -16,6 +16,7 @@
                         decoration-success="right_status == 'active'"/>
 	                <field name="right_effective_date" string="Дата вступления решения в силу:"/>
 	                <field name="right_basis" string="Основание выдачи (Документ №):"/>
+	                <field name="right_basis_url" string="Основание выдачи (Документ №):"/>
 	                <field name="construction_object" string="Объект капитального строительства:" widget="dropdown"
                         decoration-danger="construction_object == 'no'"
                         decoration-success="construction_object == 'yes'"/>/>
@@ -28,6 +29,10 @@
 	                <field name="odo_right" widget="dropdown"
                         decoration-danger="odo_right == 'no'"
                         decoration-success="odo_right == 'yes'" string="Наличие права на ОДО (Дата вступления решения в силу, Документ №):"/>
+                    <field name="show_hide_fields" invisible="1"/>
+                    <field name="hide_odo_date" placeholder="Введите дату" string="" invisible="show_hide_fields == False"/>
+                    <field name="hide_odo_doc" placeholder="Выберите документ" string="" invisible="show_hide_fields == False"/>
+                    <field name="hide_odo_doc_link" string="" invisible="show_hide_fields == False"/>
 	            </group>
 
 	            <!-- Полностью удаляем поле -->

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="estate_assets_backend" inherit_id="web.assets_backend">
+        <xpath expr="." position="inside">
+            <script type="module" src="/estate/static/src/js/sro_admission_basis.js"/>
+            <script type="module" src="/estate/static/src/js/sro_admission_basis_registry.js"/>
+        </xpath>
+    </template>
+</odoo>

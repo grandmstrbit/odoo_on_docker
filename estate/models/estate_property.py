@@ -35,8 +35,8 @@ class SroContactsWork(models.Model):
     ], string="Статус права")
     right_effective_date = fields.Date(string="Дата вступления решения в силу")
     right_basis = fields.Many2one('blog.post', string="Основание выдачи (Документ №)") 
-    right_basis_url = fields.Char(
-        string="Ссылка на блог", 
+    right_basis_url = fields.Html(
+        string="Основание выдачи (Документ №)", 
         compute="_compute_right_basis_url", 
         store=True)
     construction_object = fields.Selection([
@@ -55,7 +55,14 @@ class SroContactsWork(models.Model):
         ('yes', 'Да'),
         ('no', 'Нет'),
         ('draft', 'Правом не наделен'),
-    ], string="Наличие права на ОДО") # ДОБАВИТЬ ССЫЛКУ НА ПРОТОКОЛ и ДАТУ 
+    ], string="Наличие права на ОДО") # ДОБАВИТЬ ССЫЛКУ НА ПРОТОКОЛ и ДАТУ
+
+    hide_odo_date = fields.Date()
+    hide_odo_doc = fields.Many2one('blog.post')
+    hide_odo_doc_link = fields.Html(compute="_compute_hide_doc_link", store=True) 
+
+    show_hide_fields = fields.Boolean(compute="_compute_show_hide_fields", store=True)
+    odo_combined_info = fields.Html(compute="_compute_odo_combined_info", string="Наличие права на ОДО")
 
     @api.onchange('has_work_rights')
     def _onchange_has_work_rights(self):
@@ -74,13 +81,45 @@ class SroContactsWork(models.Model):
 
     partner2_id = fields.Many2one('res.partner', string="Выполнение работ", invisible=True)
 
-    @api.depends('right_basis')
+    @api.depends("right_basis")
     def _compute_right_basis_url(self):
         for rec in self:
             if rec.right_basis:
-                rec.right_basis_url = f"http://localhost:8069/blog/resheniia-pravleniia-3/{rec.right_basis.id}"
+                url = f"/blog/resheniia-pravleniia-3/{rec.right_basis.id}"
+                rec.right_basis_url = f'<a href="{url}" target="_blank">{rec.right_basis.name}</a>'
             else:
-                rec.right_basis_url = False
+                rec.right_basis_url = ""
+
+    @api.depends("hide_odo_doc")
+    def _compute_hide_doc_link(self):
+        for rec in self:
+            if rec.hide_odo_doc:
+                url = f"/blog/resheniia-pravleniia-3/{rec.hide_odo_doc.id}"
+                rec.hide_odo_doc_link = f'<a href="{url}" target="_blank">{rec.hide_odo_doc.name}</a>'
+            else:
+                rec.hide_odo_doc_link = ""
+
+    @api.depends("odo_right")
+    def _compute_show_hide_fields(self):
+        for rec in self:
+            rec.show_hide_fields = rec.odo_right in ['yes', 'no']
+
+    @api.depends("odo_right", "hide_odo_date", "hide_odo_doc_link")
+    def _compute_odo_combined_info(self):
+        for rec in self:
+            if rec.odo_right in ['yes', 'no', 'draft']:
+                if rec.odo_right == 'yes':
+                    color_class = 'style="color: green;"'
+                elif rec.odo_right == 'no':
+                    color_class = 'style="color: red;"'
+                else:
+                    color_class = ''
+                date_str = rec.hide_odo_date.strftime("%d.%m.%Y") if rec.hide_odo_date else ""
+                link = rec.hide_odo_doc_link or ""
+
+                rec.odo_combined_info = f'<span {color_class}>{dict(self._fields["odo_right"].selection).get(rec.odo_right, "")}</span><br>{date_str}<br>{link}'
+            else:
+                rec.odo_combined_info = ""
 
     def action_export_work_docx(self):
         """Генерация DOCX с таблицей для данных о приостановлении/возобновлении права"""
@@ -144,7 +183,15 @@ class SroContactsWork(models.Model):
             row_cells[4].text = dict(record._fields['construction_object'].selection).get(record.construction_object, "—")
             row_cells[5].text = dict(record._fields['hazardous_objects'].selection).get(record.hazardous_objects, "—")
             row_cells[6].text = dict(record._fields['nuclear_objects'].selection).get(record.nuclear_objects, "—")
-            row_cells[7].text = dict(record._fields['odo_right'].selection).get(record.odo_right, "—")
+
+            # Формируем комбинированное поле для odo_right
+            odo_text = dict(record._fields['odo_right'].selection).get(record.odo_right, "—")
+            odo_date = record.hide_odo_date.strftime('%d.%m.%Y') if record.hide_odo_date else "—"
+            odo_link = record.hide_odo_doc.name if record.hide_odo_doc else "—"  # Имя документа вместо HTML-ссылки
+
+            # Склеиваем в один текст
+            row_cells[7].text = f"{odo_text}\n{odo_date}\n{odo_link}"
+
 
             # Устанавливаем шрифт для всех ячеек строки
             for i, cell in enumerate(row_cells):
@@ -743,21 +790,15 @@ class ResPartner(models.Model):
         ('suspended', 'Исключен'),
     ], string="Статус членства")
     sro_registration_date = fields.Date(string="Дата регистрации в реестре СРО (внесения сведений в реестр):")
-    
-    sro_admission_basis = fields.Many2one('blog.post', string="Основание приема в СРО") 
-    sro_admission_basis_url = fields.Char(
-        string="Ссылка на блог", 
-        compute="_compute_sro_admission_basis_url", 
-        store=True)
-    show_termination_fields = fields.Boolean(
-        compute="_compute_show_termination_fields", store=False)
-    termination_date = fields.Date(string="Дата прекращения членства")
-    termination_reason = fields.Many2one('blog.post', string="Основание прекращения членства")
-    termination_reason_url = fields.Char(
-        string="Ссылка на блог", 
-        compute="_compute_termination_reason_url", 
-        store=True)
-    termination_info = fields.Text(string="Сведения о прекращении членства")
+    sro_admission_basis = fields.Many2one('blog.post', string="Основание приема в СРО:") 
+    sro_admission_basis_link = fields.Html(string="Основание приема в СРО:", 
+        compute="_compute_sro_admission_basis_link", store=True)
+    show_termination_fields = fields.Boolean(compute="_compute_show_termination_fields", store=False)
+    termination_date = fields.Date(string="Дата прекращения членства:")
+    termination_reason = fields.Many2one('blog.post', string="Основание прекращения членства:")
+    termination_reason_link = fields.Html(string="Основание прекращения членства:", 
+        compute="_compute_termination_reason_link", store=True)
+    termination_info = fields.Text(string="Сведения о прекращении членства:")
 
     # Компенсационные фонды
     compensation_fund_vv_amount = fields.Float(string="Сумма взноса в Компенсационный Фонд возмещения вреда (КФ ВВ) (руб.):")
@@ -804,21 +845,37 @@ class ResPartner(models.Model):
     sro_contact5_ids = fields.One2many('sro.contacts.contract', 'partner5_id', string="Предложения подрядов")
     sro_contact6_ids = fields.One2many('sro.contacts.construction', 'partner6_id', string="Сведения о приостановлении/возобновлении действия права выполнять строительсвто, реконструкцию, капиатльный ремонт объектов капитального строительства")
 
-    @api.depends('sro_admission_basis')
-    def _compute_sro_admission_basis_url(self):
+    @api.depends("sro_admission_basis")
+    def _compute_sro_admission_basis_link(self):
         for rec in self:
             if rec.sro_admission_basis:
-                rec.sro_admission_basis_url = f"http://localhost:8069/blog/resheniia-pravleniia-3/{rec.sro_admission_basis.id}"
+                url = f"/blog/resheniia-pravleniia-3/{rec.sro_admission_basis.id}"
+                rec.sro_admission_basis_link = f'<a href="{url}" target="_blank">{rec.sro_admission_basis.name}</a>'
             else:
-                rec.sro_admission_basis_url = False
+                rec.sro_admission_basis_link = ""
 
-    @api.depends('termination_reason')
-    def _compute_termination_reason_url(self):
+    @api.depends("termination_reason")
+    def _compute_termination_reason_link(self):
         for rec in self:
             if rec.termination_reason:
-                rec.termination_reason_url = f"http://localhost:8069/blog/resheniia-pravleniia-3/{rec.termination_reason.id}"
+                url = f"/blog/resheniia-pravleniia-3/{rec.termination_reason.id}"
+                rec.termination_reason_link = f'<a href="{url}" target="_blank">{rec.termination_reason.name}</a>'
             else:
-                rec.termination_reason_url = False
+                rec.termination_reason_link = ""
+
+    def get_sro_admission_basis_url(self):
+        """Генерирует ссылку на выбранную запись блога"""
+        for rec in self:
+            if rec.sro_admission_basis:
+                return f"/blog/resheniia-pravleniia-3/{rec.sro_admission_basis.id}"
+        return ""
+
+    def get_termination_reason_url(self):
+        """Генерирует ссылку на выбранную запись блога"""
+        for rec in self:
+            if rec.termination_reason:
+                return f"/blog/resheniia-pravleniia-3/{rec.termination_reason.id}"
+        return ""
 
     @api.depends('sro_membership_status')
     def _compute_show_termination_fields(self):
@@ -873,6 +930,8 @@ class ResPartner(models.Model):
         table.columns[1].width = Cm(9)
 
         def add_info(attribute, value):
+            if not value:
+                return  # Пропускаем пустые поля
             if isinstance(value, (date, datetime)):
                 value = value.strftime('%d.%m.%Y')
             elif isinstance(value, float):
