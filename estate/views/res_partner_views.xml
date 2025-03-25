@@ -179,43 +179,7 @@
                     <field name="insurance_amount" placeholder="Страховая сумма" readonly="0"/>
                 </group>
             </group>
-            <!--
-            <group string="Сведения о страховании" invisible="not is_company">
-                    <span class="o_form_label o_td_label">
-                        <p style="min-width: 200px;" invisible="not is_company">Сведения о страховщике:</p>
-                    </span>
-                    <div class="o_address_format">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <p class="me-3 fw-bold" style="min-width: 200px;">Наименование организации:</p>
-                            <field name="insurer_name" class="flex-grow-1" placeholder="Введите наименование организации страховщика:" readonly="0"/>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between">
-                            <p class="me-3 fw-bold" style="min-width: 200px;">№ Лицензии:</p>
-                            <field name="insurer_license_number" class="flex-grow-1" placeholder="Введите номер лицензии и дату:" readonly="0"/>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between">
-                            <p class="me-3 fw-bold" style="min-width: 200px;">Адрес:</p>
-                            <field name="insurer_address" class="flex-grow-1" placeholder="Введите адрес: индекс, город, улица, дом:" readonly="0"/>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between">
-                            <p class="me-3 fw-bold" style="min-width: 200px;">Контактные телефоны:</p>
-                            <field name="insurer_phone" class="flex-grow-1" widget="phone" placeholder="Введите контактные телефоны:" readonly="0"/>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between">
-                            <p class="me-3 fw-bold" style="min-width: 200px;">Веб-сайт:</p>
-                            <field name="insurer_website" class="flex-grow-1" placeholder="Введите веб-сайт:" readonly="0"/>
-                        </div>
-                        <div class="d-flex align-items-center justify-content-between">
-                            <p class="me-3 fw-bold" style="min-width: 200px;">Электронная почта:</p>
-                            <field name="insurer_email" class="flex-grow-1" placeholder="Введите электронную почту:" readonly="0"/>
-                        </div>
-                    </div>
-                    <field name="insurance_contract_number" placeholder="Номер договора" readonly="0"/>
-                    <field name="insurance_contract_expiry" placeholder="Срок действия" readonly="0"/>
-                    <field name="insurance_amount" placeholder="Страховая сумма" readonly="0"/>
-                </group>
-            -->
-            <!--Наличие права на выполнение работ-->
+
             <xpath expr="//notebook" position="inside">
                 <page string="Наличие права на выполнение работ" invisible="not is_company">
                     <field name="sro_contact2_ids">
@@ -269,7 +233,7 @@
                     <field name="sro_contact4_ids">
                         <tree string="Сведения о результатах проведенных проверок">
                             <button name="action_export_inspection_docx" type="object" string="Экспорт в файл" class="oe_highlight"/>
-                            <field name="inspection_name" string="Заголовок"/>
+                            <field name="inspection_name_link" string="Заголовок"/>
                             <field name="inspection_act_date"/>
                             <field name="inspection_month_year"/>
                             <field name="inspection_measures_list"/>

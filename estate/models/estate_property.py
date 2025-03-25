@@ -190,7 +190,7 @@ class SroContactsWork(models.Model):
             odo_link = record.hide_odo_doc.name if record.hide_odo_doc else "—"  # Имя документа вместо HTML-ссылки
 
             # Склеиваем в один текст
-            row_cells[7].text = f"{odo_text}\n{odo_date}\n{odo_link}"
+            row_cells[7].text = f"{odo_text},\n{odo_date},\n{odo_link}"
 
 
             # Устанавливаем шрифт для всех ячеек строки
@@ -276,8 +276,15 @@ class SroContactsDiscipline(models.Model):
 
         doc = Document()
 
+        # Настроим поля страницы
+        section = doc.sections[0]
+        section.left_margin = Cm(2)  # Уменьшаем левое поле (по умолчанию оно может быть 2 см или больше)
+        section.right_margin = Cm(1)  # Правое поле оставляем стандартным или по желанию
+        section.top_margin = Cm(2)  # Верхнее поле
+        section.bottom_margin = Cm(2)  # Нижнее поле
+
         # Определяем ширину колонок (в сантиметрах)
-        column_widths = [Cm(6), Cm(4), Cm(6), Cm(4)]
+        column_widths = [Cm(7), Cm(5), Cm(4), Cm(6), Cm(4)]
 
         # Создаем таблицу
         table = doc.add_table(rows=1, cols=len(column_widths))
@@ -292,8 +299,10 @@ class SroContactsDiscipline(models.Model):
                     run.font.size = Pt(12)
                     run.bold = bold
 
+        registration_number = self.partner3_id.registration_number or "записи"
         # Заголовки столбцов
         headers = [
+            "Заголовок",
             "Основание открытия дисциплинарного производства", 
             "Дата открытия дисциплинарного производства", 
             "Решение Дисциплинарной комиссии", 
@@ -308,10 +317,11 @@ class SroContactsDiscipline(models.Model):
         # Заполняем таблицу данными
         for record in records:
             row_cells = table.add_row().cells
-            row_cells[0].text = record.disciplinary_basis or "—"
-            row_cells[1].text = record.disciplinary_start_date.strftime('%d.%m.%Y') if record.disciplinary_start_date else "—"
-            row_cells[2].text = record.disciplinary_decision or "—"
-            row_cells[3].text = record.disciplinary_decision_date.strftime('%d.%m.%Y') if record.disciplinary_decision_date else "—"
+            row_cells[0].text = f"Дисциплинарное производство {registration_number}"
+            row_cells[1].text = record.disciplinary_basis or "—"
+            row_cells[2].text = record.disciplinary_start_date.strftime('%d.%m.%Y') if record.disciplinary_start_date else "—"
+            row_cells[3].text = record.disciplinary_decision or "—"
+            row_cells[4].text = record.disciplinary_decision_date.strftime('%d.%m.%Y') if record.disciplinary_decision_date else "—"
 
             # Устанавливаем шрифт для всех ячеек строки
             for i, cell in enumerate(row_cells):
@@ -322,11 +332,10 @@ class SroContactsDiscipline(models.Model):
         doc.save(buffer)
         buffer.seek(0)
 
-        registration_number = self.partner3_id.registration_number or "записи"
 
         # Создание вложения в Odoo
         attachment = self.env['ir.attachment'].create({
-            'name': f'Сведения о дисциплинарных производствах {registration_number}.docx',
+            'name': f'Сведения о дисциплинарных взысканиях {registration_number}.docx',
             'datas': base64.b64encode(buffer.getvalue()),
             'res_model': self._name,
             'res_id': self[0].id,
@@ -352,7 +361,9 @@ class SroContactsInspection(models.Model):
     inspection_number = fields.Integer(string="№", index=True)
     inspection_short_name = fields.Char(string="Сокращенное наименование организации")
     inspection_name = fields.Char(string="Заголовок:")
+    inspection_name_link = fields.Html(compute="_compute_inspection_name_link")
 
+    inspection_member_number_link = fields.Html(compute="_compute_inspection_member_number_link", string="Регистрационный номер (ссылка)")
     inspection_member_number = fields.Selection(
         selection=lambda self: self._get_registration_numbers(),
         string="Регистрационный номер члена")
@@ -383,6 +394,31 @@ class SroContactsInspection(models.Model):
             name = record.inspection_name or "Без названия"
             result.append((record.id, name))
         return result
+
+    @api.depends("inspection_name")
+    def _compute_inspection_name_link(self):
+        for rec in self:
+            if rec.id:  # Проверяем, что у записи есть ID
+                url = f"/web#id={rec.id}&cids=1&menu_id=184&action=235&model=sro.contacts.inspection&view_type=form"
+                rec.inspection_name_link = f'<a href="{url}" target="_blank">{rec.inspection_name}</a>'
+            else:
+                rec.inspection_name_link = ""
+
+    @api.depends("inspection_member_number")
+    def _compute_inspection_member_number_link(self):
+        for rec in self:
+            if rec.inspection_member_number:
+                # Находим партнера по регистрационному номеру
+                partner = self.env['res.partner'].search([('registration_number', '=', rec.inspection_member_number)], limit=1)
+                if partner:
+                    base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+                    url = f"{base_url}/web#id={partner.id}&model=res.partner&view_type=form"
+                    rec.inspection_member_number_link = f'<a href="{url}" target="_blank">{rec.inspection_member_number}</a>'
+                else:
+                    rec.inspection_member_number_link = rec.inspection_member_number
+            else:
+                rec.inspection_member_number_link = ""
+
 
     @api.model
     def create(self, vals):
@@ -697,11 +733,25 @@ class ConstructionRightSuspension(models.Model):
 
         doc = Document()
 
+        # Настроим поля страницы
+        section = doc.sections[0]
+        section.left_margin = Cm(2)  # Уменьшаем левое поле (по умолчанию оно может быть 2 см или больше)
+        section.right_margin = Cm(0.5)  # Правое поле оставляем стандартным или по желанию
+        section.top_margin = Cm(2)  # Верхнее поле
+        section.bottom_margin = Cm(2)  # Нижнее поле
+
         # Определяем ширину колонок (в сантиметрах)
-        column_widths = [Cm(1), Cm(4), Cm(6), Cm(6)]
+        column_widths = [Cm(1), Cm(4), Cm(5), Cm(7), Cm(0.5)]
 
         # Создаем таблицу
-        table = doc.add_table(rows=1, cols=len(column_widths))
+        table = doc.add_table(rows=1, cols=5)
+
+        # Отключаем авторазмер колонок
+        table.autofit = True
+        # Применяем ширину к каждой колонке
+        for i, width in enumerate(column_widths):
+            table.columns[i].width = width
+            table.columns[0].width = Cm(1)
 
         # Функция для установки шрифта
         def set_font(cell, bold=False):
@@ -714,7 +764,12 @@ class ConstructionRightSuspension(models.Model):
                     run.bold = bold
 
         # Заголовки столбцов
-        headers = ["№", "Дата решения", "Решение органов управления (право)", "Основание решения"]
+        headers = [
+            "№", 
+            "Дата решения",
+            "Решение органов управления (право)",
+            "Основание решения"
+        ]
 
         for i, header in enumerate(headers):
             cell = table.cell(0, i)
@@ -742,7 +797,7 @@ class ConstructionRightSuspension(models.Model):
 
         # Создание вложения в Odoo
         attachment = self.env['ir.attachment'].create({
-            'name': f'Сведения о приостановлении возобновлении действия права {registration_number}.docx',
+            'name': f'Сведения о результатах проведенных проверок {registration_number}.docx',
             'datas': base64.b64encode(buffer.getvalue()),
             'res_model': self._name,
             'res_id': self[0].id,
@@ -863,20 +918,6 @@ class ResPartner(models.Model):
             else:
                 rec.termination_reason_link = ""
 
-    def get_sro_admission_basis_url(self):
-        """Генерирует ссылку на выбранную запись блога"""
-        for rec in self:
-            if rec.sro_admission_basis:
-                return f"/blog/resheniia-pravleniia-3/{rec.sro_admission_basis.id}"
-        return ""
-
-    def get_termination_reason_url(self):
-        """Генерирует ссылку на выбранную запись блога"""
-        for rec in self:
-            if rec.termination_reason:
-                return f"/blog/resheniia-pravleniia-3/{rec.termination_reason.id}"
-        return ""
-
     @api.depends('sro_membership_status')
     def _compute_show_termination_fields(self):
         for record in self:
@@ -959,6 +1000,8 @@ class ResPartner(models.Model):
             ("Дата гос. регистрации ЮЛ/ИП:", self.registration_date),
             ("Сведения о соответствии члена СРО условиям членства, предусмотренным законодательством РФ и (или) внутренними документами СРО:", dict(self._fields['sro_membership_compliance'].selection).get(self.sro_membership_compliance, '—')),
             ("Статус членства:", dict(self._fields['sro_membership_status'].selection).get(self.sro_membership_status, '—')),
+            ("Дата регистрации в реестре СРО (внесения сведений в реестр):", self.sro_registration_date),
+            ("Основание приема в СРО:", self.sro_admission_basis.name if self.sro_admission_basis else "—"),
         ]
         for attribute, value in data:
             add_info(attribute, value)
@@ -974,8 +1017,6 @@ class ResPartner(models.Model):
                 add_info(attribute, value)
 
         additional_data = [
-            ("Дата регистрации в реестре СРО (внесения сведений в реестр):", self.sro_registration_date),
-            ("Основание приема в СРО:", self.sro_admission_basis.name if self.sro_admission_basis else "—"),
             ("Сумма взноса в Компенсационный Фонд возмещения вреда (КФ ВВ) (руб.):", self.compensation_fund_vv_amount),
             ("Уровень ответственности ВВ:", self.vv_responsibility_level),
             ("Стоимость работ по одному договору:", self.contract_work_cost),
