@@ -52,6 +52,8 @@ class SroContactsWork(models.Model):
     hide_odo_doc_link = fields.Html(compute="_compute_hide_doc_link", store=True) 
     show_hide_fields = fields.Boolean(compute="_compute_show_hide_fields", store=True)
     odo_combined_info = fields.Html(compute="_compute_odo_combined_info", string="Наличие права на ОДО")
+    hazardous_date = fields.Date()
+    combined_hazardous = fields.Html(compute="_compute_combined_hazardous", string="Особо опасные, технически сложные и уникальные объекты")
 
     partner2_id = fields.Many2one('res.partner', string="Выполнение работ", invisible=True)
     
@@ -98,17 +100,28 @@ class SroContactsWork(models.Model):
         for rec in self:
             if rec.odo_right in ['yes', 'no', 'draft']:
                 if rec.odo_right == 'yes':
-                    color_class = 'style="color: green;"'
+                    color_class = 'text-success'
                 elif rec.odo_right == 'no':
-                    color_class = 'style="color: red;"'
+                    color_class = 'text-danger'
                 else:
                     color_class = ''
                 date_str = rec.hide_odo_date.strftime("%d.%m.%Y") if rec.hide_odo_date else ""
                 link = rec.hide_odo_doc_link or ""
 
-                rec.odo_combined_info = f'<span {color_class}>{dict(self._fields["odo_right"].selection).get(rec.odo_right, "")}</span><br>{date_str}<br>{link}'
+                rec.odo_combined_info = f'<span class="{color_class}">{dict(self._fields["odo_right"].selection).get(rec.odo_right, "")}</span><br>{date_str}<br>{link}'
             else:
                 rec.odo_combined_info = ""
+
+    @api.depends("hazardous_objects", "hazardous_date")
+    def _compute_combined_hazardous(self):
+        for rec in self:
+            if rec.hazardous_objects in ['yes', 'no']:
+                color_class = 'text-success' if rec.hazardous_objects == 'yes' else 'text-danger'
+                date_str = rec.hazardous_date.strftime("%d.%m.%Y") if rec.hazardous_date else ""
+
+                rec.combined_hazardous = f'<span class="{color_class}">{dict(self._fields["hazardous_objects"].selection).get(rec.hazardous_objects, "")}</span><br>{date_str}'
+            else:
+                rec.combined_hazardous = ""
 
     def action_export_work_docx(self):
         partner = self.mapped('partner2_id')

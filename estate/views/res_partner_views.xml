@@ -81,7 +81,13 @@
            <xpath expr="//group/group[2]" position="attributes">
                 <attribute name="invisible">is_company</attribute>  
             </xpath>
-
+            <!--
+            <xpath expr="//div[@class='o_Chatter']" position="inside">
+                <button name="custom_action" type="object" class="btn btn-primary">
+                    Отправить кастомное сообщение
+                </button>
+            </xpath>
+            -->
             <xpath expr="//div[@class='o_row']" position="after">
                 <div class="o_row">
                     <button name="action_export_contact_docx" type="object"
@@ -197,9 +203,7 @@
                             <field name="construction_object" widget="dropdown"
                         decoration-danger="construction_object == 'no'"
                         decoration-success="construction_object == 'yes'"/>
-                            <field name="hazardous_objects" widget="dropdown"
-                        decoration-danger="hazardous_objects == 'no'"
-                        decoration-success="hazardous_objects == 'yes'"/>
+                            <field name="combined_hazardous" string="Особо опасные, технически сложные и уникальные объекты"/>
                             <field name="nuclear_objects" widget="dropdown"
                         decoration-danger="nuclear_objects == 'no'"
                         decoration-success="nuclear_objects == 'yes'"/>
@@ -255,7 +259,7 @@
                     </field>
                 </page>
             </xpath>
-            
+
             <xpath expr="//notebook" position="inside">
                 <page string="Сведения о приостановлении/возобновлении действия права выполнять строительсвто, реконструкцию, капиатльный ремонт объектов капитального строительства" invisible="not is_company">
                     <field name="sro_contact6_ids">

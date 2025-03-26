@@ -22,6 +22,7 @@
 	                <field name="hazardous_objects" string="Особо опасные, технически сложные и уникальные объекты:" widget="dropdown"
                         decoration-danger="hazardous_objects == 'no'"
                         decoration-success="hazardous_objects == 'yes'"/>
+                    <field name="hazardous_date" placeholder="Введите дату" string=""/>    
 	                <field name="nuclear_objects" string="Объекты использования атомной энергии:" widget="dropdown"
                         decoration-danger="nuclear_objects == 'no'"
                         decoration-success="nuclear_objects == 'yes'"/>
