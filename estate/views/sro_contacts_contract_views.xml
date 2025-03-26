@@ -1,5 +1,4 @@
 <odoo>
-
 	<record id="view_sro_contacts_contract_form" model="ir.ui.view">
 	    <field name="name">sro.contacts.contract.form</field>
 	    <field name="model">sro.contacts.contract</field>
@@ -12,10 +11,9 @@
 	                <field name="tender_member_number" string="Регистрационный номер члена:"/>
 	                <field name="tender_short_name" string="Сокращенное наименование организации:"/>  
 	            </group>
-	            <!-- Полностью удаляем поле -->
+
 	            <xpath expr="//field[@name='partner5_id']" position="replace"/>
 	        </form>
 	    </field>
 	</record>
-
 </odoo>

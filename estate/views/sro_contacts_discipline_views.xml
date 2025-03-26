@@ -1,5 +1,4 @@
 <odoo>
-
 	<record id="view_sro_contacts_discipline_form" model="ir.ui.view">
 	    <field name="name">sro.contacts.discipline.form</field>
 	    <field name="model">sro.contacts.discipline</field>
@@ -11,6 +10,7 @@
                 <group>
                     <field name="discipline_message" readonly="1" nolabel="1"/>
                 </group>
+                
 	            <group>
 	                <field name="disciplinary_basis" string="Основание открытия дисциплинарного производства:"/>
 	                <field name="disciplinary_start_date" string="Дата открытия дисциплинарного производства:"/>
@@ -18,10 +18,8 @@
 	                <field name="disciplinary_decision_date" string="Дата решения дисциплинарной комиссии:"/>
 	            </group>
 
-	            <!-- Полностью удаляем поле -->
 	            <xpath expr="//field[@name='partner3_id']" position="replace"/>
 	        </form>
 	    </field>
 	</record>
-
 </odoo>

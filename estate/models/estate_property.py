@@ -1,39 +1,35 @@
+from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
+import base64
+import io
+
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 from odoo.tools.float_utils import float_compare, float_is_zero
-from io import BytesIO
-import base64
-import io
-from datetime import date, datetime
-from docx.shared import Pt, Inches
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from docx import Document
-from docx.shared import Cm
 from odoo.http import request, content_disposition
 from werkzeug.wrappers import Response
-from docx.oxml import OxmlElement, ns
 
-class EstateProperty(models.Model):
-    _name = 'estate.property'
-    _description = 'Example Estate Property'
-    _order = 'id desc'
+from docx import Document
+from docx.shared import Pt, Cm, Inches
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.enum.section import WD_ORIENTATION
+from docx.oxml import OxmlElement, ns
 
 
 class SroContactsWork(models.Model):
     _name = 'sro.contacts.work'
-    _description = "sro contacts work"
+    _description = "Наличие права на выполнение работ"
 
     has_work_rights = fields.Boolean(string="Правом не наделен")
     
-    # Сведения о наличии прав на выполнение работ
     number = fields.Char(string="№")
     right_status = fields.Selection([
         ('active', 'Действует'),
         ('suspended', 'Прекращено'),
     ], string="Статус права")
     right_effective_date = fields.Date(string="Дата вступления решения в силу")
-    right_basis = fields.Char(string="Основание выдачи") # ССЫЛКА НА ДОКУМЕНТ
+    right_basis = fields.Many2one('blog.post', string="Основание выдачи (Документ №)") 
+    right_basis_url = fields.Html(string="Основание выдачи (Документ №)", compute="_compute_right_basis_url", store=True)
     construction_object = fields.Selection([
         ('yes', 'Да'),
         ('no', 'Нет'),
@@ -50,8 +46,15 @@ class SroContactsWork(models.Model):
         ('yes', 'Да'),
         ('no', 'Нет'),
         ('draft', 'Правом не наделен'),
-    ], string="Наличие права на ОДО") # ДОБАВИТЬ ССЫЛКУ НА ПРОТОКОЛ
+    ], string="Наличие права на ОДО")
+    hide_odo_date = fields.Date()
+    hide_odo_doc = fields.Many2one('blog.post')
+    hide_odo_doc_link = fields.Html(compute="_compute_hide_doc_link", store=True) 
+    show_hide_fields = fields.Boolean(compute="_compute_show_hide_fields", store=True)
+    odo_combined_info = fields.Html(compute="_compute_odo_combined_info", string="Наличие права на ОДО")
 
+    partner2_id = fields.Many2one('res.partner', string="Выполнение работ", invisible=True)
+    
     @api.onchange('has_work_rights')
     def _onchange_has_work_rights(self):
         """Очищает поля, если галочка установлена"""
@@ -67,85 +70,129 @@ class SroContactsWork(models.Model):
                 'odo_right': 'draft',
             })
 
-    partner2_id = fields.Many2one('res.partner', string="Выполнение работ", invisible=True)
+    @api.depends("right_basis")
+    def _compute_right_basis_url(self):
+        for rec in self:
+            if rec.right_basis:
+                url = f"/blog/resheniia-pravleniia-3/{rec.right_basis.id}"
+                rec.right_basis_url = f'<a href="{url}" target="_blank">{rec.right_basis.name}</a>'
+            else:
+                rec.right_basis_url = ""
 
+    @api.depends("hide_odo_doc")
+    def _compute_hide_doc_link(self):
+        for rec in self:
+            if rec.hide_odo_doc:
+                url = f"/blog/resheniia-pravleniia-3/{rec.hide_odo_doc.id}"
+                rec.hide_odo_doc_link = f'<a href="{url}" target="_blank">{rec.hide_odo_doc.name}</a>'
+            else:
+                rec.hide_odo_doc_link = ""
+
+    @api.depends("odo_right")
+    def _compute_show_hide_fields(self):
+        for rec in self:
+            rec.show_hide_fields = rec.odo_right in ['yes', 'no']
+
+    @api.depends("odo_right", "hide_odo_date", "hide_odo_doc_link")
+    def _compute_odo_combined_info(self):
+        for rec in self:
+            if rec.odo_right in ['yes', 'no', 'draft']:
+                if rec.odo_right == 'yes':
+                    color_class = 'style="color: green;"'
+                elif rec.odo_right == 'no':
+                    color_class = 'style="color: red;"'
+                else:
+                    color_class = ''
+                date_str = rec.hide_odo_date.strftime("%d.%m.%Y") if rec.hide_odo_date else ""
+                link = rec.hide_odo_doc_link or ""
+
+                rec.odo_combined_info = f'<span {color_class}>{dict(self._fields["odo_right"].selection).get(rec.odo_right, "")}</span><br>{date_str}<br>{link}'
+            else:
+                rec.odo_combined_info = ""
 
     def action_export_work_docx(self):
-        """Генерация DOCX с заголовками сверху и значениями снизу в альбомной ориентации"""
+        partner = self.mapped('partner2_id')
+
+        if not partner:
+            raise UserError("Не удалось определить партнера!")
+        records = self.search([('partner2_id', '=', partner.id)])
+
+        if not records:
+            raise UserError("Нет данных для экспорта!")
+
         doc = Document()
-
-        # Делаем ориентацию альбомной
         section = doc.sections[0]
-        section.page_width = Inches(11.69)  # A4 (альбомная)
-        section.page_height = Inches(8.27)  # A4 (альбомная)
-        section.left_margin = Inches(0.5)
-        section.right_margin = Inches(0.5)
-        section.top_margin = Inches(0.5)
-        section.bottom_margin = Inches(0.5)
 
-        fields_data = {
-            "№": self.number or '',
-            "Статус права": dict(self._fields['right_status'].selection).get(self.right_status, ''),
-            "Дата вступления решения в силу": self.right_effective_date.strftime('%d.%m.%Y') if self.right_effective_date else '',
-            "Основание выдачи (Документ №)": self.right_basis or '',
-            "Объект капитального строительства": dict(self._fields['construction_object'].selection).get(self.construction_object, ''),
-            "Особо опасные, технически сложные и уникальные объекты": dict(self._fields['hazardous_objects'].selection).get(self.hazardous_objects, ''),
-            "Объекты использования атомной энергии": dict(self._fields['nuclear_objects'].selection).get(self.nuclear_objects, ''),
-            "Наличие права на ОДО (Дата вступления решения в силу, Документ №)": dict(self._fields['odo_right'].selection).get(self.odo_right, ''),
-        }
+        section.orientation = WD_ORIENTATION.LANDSCAPE
+        section.page_width, section.page_height = section.page_height, section.page_width
 
-        # Создаём таблицу
-        table = doc.add_table(rows=2, cols=len(fields_data))
-        table.autofit = False  # Отключаем авторазмер, чтобы таблица заняла всю ширину страницы
+        column_widths = [Cm(1), Cm(3), Cm(5), Cm(4), Cm(4), Cm(4), Cm(4), Cm(4)]
 
-        # Устанавливаем ширину колонок равномерно
-        col_width = section.page_width / len(fields_data) - Inches(0.1)  # Минус небольшой отступ
+        table = doc.add_table(rows=1, cols=len(column_widths))
+
         for row in table.rows:
             for cell in row.cells:
-                cell.width = col_width
+                for border in ['top', 'left', 'bottom', 'right']:
+                    cell._element.get_or_add_tcPr().append(OxmlElement(f'w:{border}'))
 
-        # Функция для установки шрифта
+        for i, cell in enumerate(table.rows[0].cells):
+            cell.width = column_widths[i]
+
         def set_font(cell, bold=False):
             for para in cell.paragraphs:
+                if not para.runs:
+                    para.add_run()
                 for run in para.runs:
                     run.font.name = 'Times New Roman'
                     run.font.size = Pt(12)
                     run.bold = bold
 
-        # Заполняем первую строку (атрибуты)
-        header_cells = table.rows[0].cells
-        for i, field_name in enumerate(fields_data.keys()):
-            header_cells[i].text = field_name
-            set_font(header_cells[i], bold=True)
+        headers = ["№", "Статус права", "Дата вступления решения в силу", "Основание выдачи (Документ №)", "Объект капитального строительства", "Особо опасные, технически сложные и уникальные объекты", "Объекты использования атомной энергии", "Наличие права на ОДО (Дата вступления решения в силу, Документ №)"]
+        
+        for i, header in enumerate(headers):
+            cell = table.cell(0, i)
+            cell.text = header
+            set_font(cell, bold=True)
 
-        # Заполняем вторую строку (значения)
-        value_cells = table.rows[1].cells
-        for i, field_value in enumerate(fields_data.values()):
-            value_cells[i].text = field_value
-            set_font(value_cells[i])
+        for record in records:
+            row_cells = table.add_row().cells
+            row_cells[0].text = record.number or "—"
+            row_cells[1].text = dict(record._fields['right_status'].selection).get(record.right_status, "—")
+            row_cells[2].text = record.right_effective_date.strftime('%d.%m.%Y') if record.right_effective_date else "—"
+            row_cells[3].text = record.right_basis.name or "—"
+            row_cells[4].text = dict(record._fields['construction_object'].selection).get(record.construction_object, "—")
+            row_cells[5].text = dict(record._fields['hazardous_objects'].selection).get(record.hazardous_objects, "—")
+            row_cells[6].text = dict(record._fields['nuclear_objects'].selection).get(record.nuclear_objects, "—")
 
-        # Сохранение в память
+            odo_text = dict(record._fields['odo_right'].selection).get(record.odo_right, "—")
+            odo_date = record.hide_odo_date.strftime('%d.%m.%Y') if record.hide_odo_date else "—"
+            odo_link = record.hide_odo_doc.name if record.hide_odo_doc else "—"  # Имя документа вместо HTML-ссылки
+
+            row_cells[7].text = f"{odo_text},\n{odo_date},\n{odo_link}"
+
+            for i, cell in enumerate(row_cells):
+                cell.width = column_widths[i]
+                set_font(cell)
+
         buffer = io.BytesIO()
         doc.save(buffer)
         buffer.seek(0)
 
         registration_number = self.partner2_id.registration_number or "записи"
-        # Создание вложения в Odoo
+        
         attachment = self.env['ir.attachment'].create({
             'name': f'Наличие права на выполнение работ {registration_number}.docx',
             'datas': base64.b64encode(buffer.getvalue()),
             'res_model': self._name,
-            'res_id': self.id,
+            'res_id': self[0].id,
             'type': 'binary',
         })
 
-        # Возвращение ссылки на скачивание
         return {
             'type': 'ir.actions.act_url',
             'url': f'/web/content/{attachment.id}?download=true',
             'target': 'self',
         }
-
 
 class SroContactsDiscipline(models.Model):
     _name = 'sro.contacts.discipline'
@@ -153,11 +200,13 @@ class SroContactsDiscipline(models.Model):
 
     is_discipline = fields.Boolean(string="Сведений нет")
     discipline_message = fields.Char(compute="_compute_discipline_message", store=False)
-    #Сведения о дисциплинарных производствах
+
     disciplinary_basis = fields.Char(string="Основание открытия дисциплинарного производства")
     disciplinary_start_date = fields.Date(string="Дата открытия дисциплинарного производства")
     disciplinary_decision = fields.Text(string="Решение дисциплинарной комиссии")
     disciplinary_decision_date = fields.Date(string="Дата решения дисциплинарной комиссии")
+
+    partner3_id = fields.Many2one('res.partner', invisible=True)
 
     @api.depends('is_discipline')
     def _compute_discipline_message(self):
@@ -173,106 +222,95 @@ class SroContactsDiscipline(models.Model):
                 'disciplinary_decision': False,
                 'disciplinary_decision_date': False,
             })
-    partner3_id = fields.Many2one('res.partner', invisible=True)
-
-    def format_date(date_value):
-        """Преобразует дату в формат DD.MM.YY"""
-        if not date_value:
-            return '—'
-        if isinstance(date_value, str):  # Если строка, парсим
-            date_value = datetime.strptime(date_value, '%Y-%m-%d').date()
-        elif isinstance(date_value, datetime):  # Если datetime, берем только дату
-            date_value = date_value.date()
-        elif not isinstance(date_value, date):  # Если это не date, значит что-то не так
-            return '—'
-        return date_value.strftime('%d.%m.%Y')
 
     def action_export_discipline_docx(self):
-        """Генерация DOCX с информацией о дисциплинарном производстве"""
+        partner = self.mapped('partner3_id')
+
+        if not partner:
+            raise UserError("Не удалось определить партнера!")
+        records = self.search([('partner3_id', '=', partner.id)])
+
+        if not records:
+            raise UserError("Нет данных для экспорта!")
         doc = Document()
 
-        fields_data = {
-            "Основание открытия дисциплинарного производства": self.disciplinary_basis or '',
-            "Дата открытия дисциплинарного производства": self.disciplinary_start_date.strftime('%d.%m.%Y') if self.disciplinary_start_date else '',
-            "Решение Дисциплинарной комиссии": self.disciplinary_decision or '',
-            "Дата решения Дисциплинарной комиссии": self.disciplinary_decision_date.strftime('%d.%m.%Y') if self.disciplinary_decision_date else '',
-        }
+        section = doc.sections[0]
+        section.left_margin = Cm(2)  # Уменьшаем левое поле (по умолчанию оно может быть 2 см или больше)
+        section.right_margin = Cm(1)  # Правое поле оставляем стандартным или по желанию
+        section.top_margin = Cm(2)  # Верхнее поле
+        section.bottom_margin = Cm(2)  # Нижнее поле
 
-        # Создаём таблицу
-        table = doc.add_table(rows=2, cols=len(fields_data))
-        table.autofit = False  # Отключаем авторазмер, чтобы таблица заняла всю ширину страницы
+        column_widths = [Cm(7), Cm(5), Cm(4), Cm(6), Cm(4)]
 
-        # Устанавливаем ширину таблицы в процентах
-        tbl = table._element
-        tblPr = tbl.find(ns.qn('w:tblPr'))
-        if tblPr is None:
-            tblPr = OxmlElement('w:tblPr')
-            tbl.append(tblPr)
+        table = doc.add_table(rows=1, cols=len(column_widths))
 
-        tblW = OxmlElement('w:tblW')
-        tblW.set(ns.qn('w:w'), "5800")  # Максимальная ширина
-        tblW.set(ns.qn('w:type'), "pct")  # В процентах
-        tblPr.append(tblW)
-
-        # Функция для установки шрифта
-        def set_font(cell):
+        def set_font(cell, bold=False):
             for para in cell.paragraphs:
+                if not para.runs:
+                    para.add_run()
                 for run in para.runs:
                     run.font.name = 'Times New Roman'
                     run.font.size = Pt(12)
+                    run.bold = bold
 
-        # Заполняем первую строку (атрибуты)
-        header_cells = table.rows[0].cells
-        for i, field_name in enumerate(fields_data.keys()):
-            header_cells[i].text = field_name
-            for para in header_cells[i].paragraphs:
-                for run in para.runs:
-                    run.bold = True  # Заголовки жирные
-            set_font(header_cells[i])
+        registration_number = self.partner3_id.registration_number or "записи"
+        headers = [
+            "Заголовок",
+            "Основание открытия дисциплинарного производства", 
+            "Дата открытия дисциплинарного производства", 
+            "Решение Дисциплинарной комиссии", 
+            "Дата решения Дисциплинарной комиссии"
+        ]
 
-        # Заполняем вторую строку (значения)
-        value_cells = table.rows[1].cells
-        for i, field_value in enumerate(fields_data.values()):
-            value_cells[i].text = field_value
-            set_font(value_cells[i])
+        for i, header in enumerate(headers):
+            cell = table.cell(0, i)
+            cell.text = header
+            set_font(cell, bold=True)
 
-        # Сохранение в память
+        for record in records:
+            row_cells = table.add_row().cells
+            row_cells[0].text = f"Дисциплинарное производство {registration_number}"
+            row_cells[1].text = record.disciplinary_basis or "—"
+            row_cells[2].text = record.disciplinary_start_date.strftime('%d.%m.%Y') if record.disciplinary_start_date else "—"
+            row_cells[3].text = record.disciplinary_decision or "—"
+            row_cells[4].text = record.disciplinary_decision_date.strftime('%d.%m.%Y') if record.disciplinary_decision_date else "—"
+
+            for i, cell in enumerate(row_cells):
+                set_font(cell)
+
         buffer = io.BytesIO()
         doc.save(buffer)
         buffer.seek(0)
 
-        registration_number = self.partner3_id.registration_number or "записи"
-        # Создание вложения в Odoo
         attachment = self.env['ir.attachment'].create({
             'name': f'Сведения о дисциплинарных взысканиях {registration_number}.docx',
             'datas': base64.b64encode(buffer.getvalue()),
             'res_model': self._name,
-            'res_id': self.id,
+            'res_id': self[0].id,
             'type': 'binary',
         })
 
-        # Возвращение ссылки на скачивание
         return {
             'type': 'ir.actions.act_url',
             'url': f'/web/content/{attachment.id}?download=true',
             'target': 'self',
         }
 
-
-
 class SroContactsInspection(models.Model):
     _name = 'sro.contacts.inspection'
     _description = "sro contacts inspection"
+    _order = "inspection_number asc"
+    _rec_name = 'inspection_name'
 
-    # Флаг для отображения полей проверки
     inspections_conducted = fields.Boolean(string="Проверки не проводились")
-
-    # Сведения о результатах проведенных проверок
+    inspection_number = fields.Integer(string="№", index=True)
+    inspection_short_name = fields.Char(string="Сокращенное наименование организации")
+    inspection_name = fields.Char(string="Заголовок:")
+    inspection_name_link = fields.Html(compute="_compute_inspection_name_link")
+    inspection_member_number_link = fields.Html(compute="_compute_inspection_member_number_link", string="Регистрационный номер (ссылка)")
     inspection_member_number = fields.Selection(
         selection=lambda self: self._get_registration_numbers(),
-        string="Регистрационный номер члена",
-        help="Выберите регистрационный номер из списка или введите вручную."
-    )
+        string="Регистрационный номер члена")
     inspection_act_date = fields.Date(string="Дата акта проверки")
     inspection_month_year = fields.Char(string="Месяц, год проверки")
     inspection_type = fields.Selection([
@@ -294,11 +332,78 @@ class SroContactsInspection(models.Model):
     inspection_disciplinary_measures = fields.Text(string="Применение мер дисциплинарного воздействия (итог)")
     inspection_measures_list = fields.Text(string="Перечень мер дисциплинарного воздействия")
 
+    partner4_id = fields.Many2one('res.partner')
+
+    def name_get(self):
+        result = []
+        for record in self:
+            name = record.inspection_name or "Без названия"
+            result.append((record.id, name))
+        return result
+
+    @api.depends("inspection_name")
+    def _compute_inspection_name_link(self):
+        for rec in self:
+            if rec.id:  # Проверяем, что у записи есть ID
+                url = f"/web#id={rec.id}&cids=1&menu_id=184&action=235&model=sro.contacts.inspection&view_type=form"
+                rec.inspection_name_link = f'<a href="{url}" target="_blank">{rec.inspection_name}</a>'
+            else:
+                rec.inspection_name_link = ""
+
+    @api.depends("inspection_member_number")
+    def _compute_inspection_member_number_link(self):
+        for rec in self:
+            if rec.inspection_member_number:
+                partner = self.env['res.partner'].search([('registration_number', '=', rec.inspection_member_number)], limit=1)
+                if partner:
+                    base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+                    url = f"{base_url}/web#id={partner.id}&model=res.partner&view_type=form"
+                    rec.inspection_member_number_link = f'<a href="{url}" target="_blank">{rec.inspection_member_number}</a>'
+                else:
+                    rec.inspection_member_number_link = rec.inspection_member_number
+            else:
+                rec.inspection_member_number_link = ""
+
+    @api.model
+    def create(self, vals):
+        """Присваиваем новой записи номер 1 и сдвигаем остальные"""
+        records = self.search([], order="inspection_number asc")
+
+        new_record = super(SroContactsInspection, self).create(vals)
+        new_record.inspection_number = 1  # Новая запись всегда первая
+
+        # Сдвигаем все остальные номера
+        number = 2
+        for record in records.sorted(key=lambda r: r.inspection_number):
+            record.write({'inspection_number': number})
+            number += 1
+
+        return new_record
+
+    def unlink(self):
+        """Пересчитываем номера после удаления"""
+        res = super(SroContactsInspection, self).unlink()
+
+        # Перенумеровка оставшихся записей в правильном порядке
+        records = self.search([], order="inspection_number asc")
+        for index, record in enumerate(records.sorted(key=lambda r: r.inspection_number), start=1):
+            record.write({'inspection_number': index})
+
+        return res
+
     @api.model
     def _get_registration_numbers(self):
-        """Получаем список регистрационных номеров из res.partner"""
         partners = self.env['res.partner'].search([('registration_number', '!=', False)])
         return [(partner.registration_number, partner.registration_number) for partner in partners]
+
+    @api.onchange('inspection_member_number')
+    def _onchange_inspection_member_number(self):
+        """Автоматически заполняет `inspection_short_name` по `inspection_member_number`"""
+        if self.inspection_member_number:
+            partner = self.env['res.partner'].search([('registration_number', '=', self.inspection_member_number)], limit=1)
+            self.inspection_short_name = partner.short_name if partner else ''
+        else:
+            self.inspection_short_name = ''
 
     @api.onchange('partner4_id')
     def _onchange_partner_id(self):
@@ -325,73 +430,69 @@ class SroContactsInspection(models.Model):
                 'inspection_measures_list': False,
                 'inspection_result': 'draft',
             })
-    partner4_id = fields.Many2one('res.partner')
 
     def action_export_inspection_docx(self):
-        """Генерация DOCX с данными о результатах проверки"""
+        partner = self.mapped('partner4_id')
+
+        if not partner:
+            raise UserError("Не удалось определить партнера!")
+        records = self.search([('partner4_id', '=', partner.id)])
+
+        if not records:
+            raise UserError("Нет данных для экспорта!")
         doc = Document()
-        
-        fields_data = {
-            "Заголовок": self.inspection_member_number or '—',
-            "Дата акта проверки": self.inspection_act_date.strftime('%d.%m.%Y') if self.inspection_act_date else '—',
-            "Месяц, год проверки": self.inspection_month_year or '—',
-            "Перечень мер дисциплинарного воздействия": self.inspection_measures_list or '—',
-            "Результат проверки": dict(self._fields['inspection_result'].selection).get(self.inspection_result, '—'),
-        }
-        # Создаём таблицу
-        table = doc.add_table(rows=2, cols=len(fields_data))
-        table.autofit = False  # Отключаем авторазмер, чтобы таблица заняла всю ширину страницы
 
-        # Устанавливаем ширину таблицы в процентах
-        tbl = table._element
-        tblPr = tbl.find(ns.qn('w:tblPr'))
-        if tblPr is None:
-            tblPr = OxmlElement('w:tblPr')
-            tbl.append(tblPr)
+        column_widths = [Cm(3), Cm(4), Cm(4), Cm(6), Cm(5)]
 
-        tblW = OxmlElement('w:tblW')
-        tblW.set(ns.qn('w:w'), "5700")  # Максимальная ширина
-        tblW.set(ns.qn('w:type'), "pct")  # В процентах
-        tblPr.append(tblW)
+        table = doc.add_table(rows=1, cols=len(column_widths))
 
-        # Функция для установки шрифта
-        def set_font(cell):
+        def set_font(cell, bold=False):
             for para in cell.paragraphs:
+                if not para.runs:
+                    para.add_run()
                 for run in para.runs:
                     run.font.name = 'Times New Roman'
                     run.font.size = Pt(12)
+                    run.bold = bold
 
-        # Заполняем первую строку (атрибуты)
-        header_cells = table.rows[0].cells
-        for i, field_name in enumerate(fields_data.keys()):
-            header_cells[i].text = field_name
-            for para in header_cells[i].paragraphs:
-                for run in para.runs:
-                    run.bold = True  # Заголовки жирные
-            set_font(header_cells[i])
+        headers = [
+            "Заголовок", 
+            "Дата решения", 
+            "Месяц, год проверки", 
+            "Перечень мер дисциплинарного воздействия", 
+            "Результат проверки"
+        ]
 
-        # Заполняем вторую строку (значения)
-        value_cells = table.rows[1].cells
-        for i, field_value in enumerate(fields_data.values()):
-            value_cells[i].text = field_value
-            set_font(value_cells[i])
+        for i, header in enumerate(headers):
+            cell = table.cell(0, i)
+            cell.text = header
+            set_font(cell, bold=True)
 
-        # Сохранение в память
+        for record in records:
+            row_cells = table.add_row().cells
+            row_cells[0].text = record.inspection_name or "—"
+            row_cells[1].text = record.inspection_act_date.strftime('%d.%m.%Y') if record.inspection_act_date else "—"
+            row_cells[2].text = record.inspection_month_year or "—"
+            row_cells[3].text = record.inspection_measures_list or "—"
+            row_cells[4].text = dict(record._fields['inspection_result'].selection).get(record.inspection_result, "—")
+
+            for i, cell in enumerate(row_cells):
+                set_font(cell)
+
         buffer = io.BytesIO()
         doc.save(buffer)
         buffer.seek(0)
 
         registration_number = self.partner4_id.registration_number or "записи"
-        # Создание вложения в Odoo
+
         attachment = self.env['ir.attachment'].create({
             'name': f'Сведения о результатах проведенных проверок {registration_number}.docx',
             'datas': base64.b64encode(buffer.getvalue()),
             'res_model': self._name,
-            'res_id': self.id,
+            'res_id': self[0].id,
             'type': 'binary',
         })
 
-        # Возвращение ссылки на скачивание
         return {
             'type': 'ir.actions.act_url',
             'url': f'/web/content/{attachment.id}?download=true',
@@ -402,7 +503,7 @@ class SroContactsContract(models.Model):
     _name = 'sro.contacts.contract'
     _description = "sro contacts contract"
 
-    # Новые поля: Предложения подрядов
+    tender_date = fields.Datetime(string="Дата публикации", default=lambda self: fields.Datetime.now())
     tender_type = fields.Selection([
         ('offer', 'Предложение подряда'),
         ('search', 'Поиск подряда'),
@@ -413,15 +514,30 @@ class SroContactsContract(models.Model):
     tender_member_number = fields.Selection(
         selection=lambda self: self._get_registration_numbers(),
         string="Регистрационный номер члена",
-        help="Выберите регистрационный номер из списка или введите вручную."
-    )
-    tender_short_name = fields.Char(string="Сокращенное наименование организации")
+        help="Выберите регистрационный номер из списка или введите вручную.")
+    tender_short_name = fields.Selection(
+        selection=lambda self: self._get_short_name(),
+        string="Сокращенное наименование организации")
+
+    partner5_id = fields.Many2one('res.partner')
+
+    @api.model
+    def create(self, vals):
+        if not vals.get('tender_date'):
+            vals['tender_date'] = fields.Datetime.now()
+        return super(SroContactsContract, self).create(vals)
 
     @api.model
     def _get_registration_numbers(self):
         """Получаем список регистрационных номеров из res.partner"""
         partners = self.env['res.partner'].search([('registration_number', '!=', False)])
         return [(partner.registration_number, partner.registration_number) for partner in partners]
+
+    @api.model
+    def _get_short_name(self):
+        """Получаем список сокращенных наименований из res.partner"""
+        partners = self.env['res.partner'].search([('short_name', '!=', False)])
+        return [(partner.short_name, partner.short_name) for partner in partners]
 
     @api.onchange('partner5_id')
     def _onchange_partner_id(self):
@@ -440,80 +556,74 @@ class SroContactsContract(models.Model):
                 'tender_member_number': False,
                 'tender_short_name': False,
             })
-    partner5_id = fields.Many2one('res.partner')
 
     def action_export_contract_docx(self):
-        """Генерация DOCX с таблицей для данных о подряде"""
+        partner = self.mapped('partner5_id')
+
+        if not partner:
+            raise UserError("Не удалось определить партнера!")
+        records = self.search([('partner5_id', '=', partner.id)])
+
+        if not records:
+            raise UserError("Нет данных для экспорта!")
         doc = Document()
 
-        fields_data = {
-            "Предложение или поиск подряда": dict(self._fields['tender_type'].selection).get(self.tender_type, '—'),
-            "Описание подряда": self.tender_description or '—',
-            "Контактные данные": self.tender_contact_info or '—',
-            "Регистрационный номер члена": str(self.tender_member_number) if self.tender_member_number else "—",
-            "Сокращённое наименование организации": str(self.tender_short_name) if self.tender_short_name else "—"
-        }
+        column_widths = [Cm(4), Cm(6), Cm(5), Cm(4), Cm(5)]
 
-        # Создаём таблицу
-        table = doc.add_table(rows=2, cols=len(fields_data))
-        table.autofit = False
+        table = doc.add_table(rows=1, cols=len(column_widths))
 
-        # Устанавливаем ширину таблицы
-        tbl = table._element
-        tblPr = tbl.find(ns.qn('w:tblPr'))
-        if tblPr is None:
-            tblPr = OxmlElement('w:tblPr')
-            tbl.append(tblPr)
-
-        tblW = OxmlElement('w:tblW')
-        tblW.set(ns.qn('w:w'), "5500")  # Максимальная ширина таблицы
-        tblW.set(ns.qn('w:type'), "pct")  # В процентах
-        tblPr.append(tblW)
-
-        # Функция для установки шрифта
-        def set_font(cell):
+        def set_font(cell, bold=False):
             for para in cell.paragraphs:
+                if not para.runs:
+                    para.add_run()
                 for run in para.runs:
                     run.font.name = 'Times New Roman'
                     run.font.size = Pt(12)
+                    run.bold = bold
 
-        # Заполняем первую строку (атрибуты)
-        header_cells = table.rows[0].cells
-        for i, field_name in enumerate(fields_data.keys()):
-            header_cells[i].text = field_name
-            for para in header_cells[i].paragraphs:
-                for run in para.runs:
-                    run.bold = True
-            set_font(header_cells[i])
+        headers = [
+            "Предложение или поиск подряда", 
+            "Описание подряда", 
+            "Контактные данные", 
+            "Регистрационный номер члена", 
+            "Сокращенное наименование организации"
+        ]
 
-        # Заполняем вторую строку (значения)
-        value_cells = table.rows[1].cells
-        for i, field_value in enumerate(fields_data.values()):
-            value_cells[i].text = field_value
-            set_font(value_cells[i])
+        for i, header in enumerate(headers):
+            cell = table.cell(0, i)
+            cell.text = header
+            set_font(cell, bold=True)
 
-        # Сохранение в память
+        for record in records:
+            row_cells = table.add_row().cells
+            row_cells[0].text = dict(record._fields['tender_type'].selection).get(record.tender_type, "—")
+            row_cells[1].text = record.tender_description or "—"
+            row_cells[2].text = record.tender_contact_info or "—"
+            row_cells[3].text = record.tender_member_number or "—"
+            row_cells[4].text = record.tender_short_name or "—"
+
+            for i, cell in enumerate(row_cells):
+                set_font(cell)
+
         buffer = io.BytesIO()
         doc.save(buffer)
         buffer.seek(0)
 
         registration_number = self.partner5_id.registration_number or "записи"
-        # Создание вложения в Odoo
+
         attachment = self.env['ir.attachment'].create({
             'name': f'Предложение подряда {registration_number}.docx',
             'datas': base64.b64encode(buffer.getvalue()),
             'res_model': self._name,
-            'res_id': self.id,
+            'res_id': self[0].id,
             'type': 'binary',
         })
 
-        # Возвращение ссылки на скачивание
         return {
             'type': 'ir.actions.act_url',
             'url': f'/web/content/{attachment.id}?download=true',
             'target': 'self',
         }
-
 
 class ConstructionRightSuspension(models.Model):
     _name = "sro.contacts.construction"
@@ -530,27 +640,31 @@ class ConstructionRightSuspension(models.Model):
     partner6_id = fields.Many2one('res.partner')
 
     def action_export_construction_docx(self):
-        """Генерация DOCX с таблицей для данных о приостановлении/возобновлении права"""
+        partner = self.mapped('partner6_id')
 
+        if not partner:
+            raise UserError("Не удалось определить партнера!")
+        records = self.search([('partner6_id', '=', partner.id)])
+
+        if not records:
+            raise UserError("Нет данных для экспорта!")
         doc = Document()
+
         section = doc.sections[0]
+        section.left_margin = Cm(2)  # Уменьшаем левое поле (по умолчанию оно может быть 2 см или больше)
+        section.right_margin = Cm(0.5)  # Правое поле оставляем стандартным или по желанию
+        section.top_margin = Cm(2)  # Верхнее поле
+        section.bottom_margin = Cm(2)  # Нижнее поле
 
-        fields_data = {
-            "№": self.number or '—',
-            "Дата решения": self.decision_date.strftime('%d.%m.%Y') if self.decision_date else '—',
-            "Решение органов управления (право)": dict(self._fields['management_decision'].selection).get(self.management_decision, '—'),
-            "Основание решения": self.decision_basis or '—'
-        }
+        column_widths = [Cm(1), Cm(4), Cm(5), Cm(7), Cm(0.5)]
 
-        # Создаём таблицу
-        table = doc.add_table(rows=2, cols=len(fields_data))
-        
-        # Устанавливаем ширину колонок равномерно
-        col_width = (section.page_width - section.left_margin - section.right_margin) / len(fields_data)
-        for i, cell in enumerate(table.rows[0].cells):
-            cell.width = col_width
+        table = doc.add_table(rows=1, cols=5)
 
-        # Функция для установки шрифта
+        table.autofit = True
+        for i, width in enumerate(column_widths):
+            table.columns[i].width = width
+            table.columns[0].width = Cm(1)
+
         def set_font(cell, bold=False):
             for para in cell.paragraphs:
                 if not para.runs:
@@ -560,51 +674,58 @@ class ConstructionRightSuspension(models.Model):
                     run.font.size = Pt(12)
                     run.bold = bold
 
-        # Заполняем первую строку (атрибуты)
-        for i, field_name in enumerate(fields_data.keys()):
-            table.cell(0, i).text = field_name
-            set_font(table.cell(0, i), bold=True)
+        headers = [
+            "№", 
+            "Дата решения",
+            "Решение органов управления (право)",
+            "Основание решения"
+        ]
 
-        # Заполняем вторую строку (значения)
-        for i, field_value in enumerate(fields_data.values()):
-            table.cell(1, i).text = field_value
-            set_font(table.cell(1, i))
+        for i, header in enumerate(headers):
+            cell = table.cell(0, i)
+            cell.text = header
+            set_font(cell, bold=True)
 
-        # Сохранение в память
+        for record in records:
+            row_cells = table.add_row().cells
+            row_cells[0].text = record.number or "—"
+            row_cells[1].text = record.decision_date.strftime('%d.%m.%Y') if record.decision_date else "—"
+            row_cells[2].text = dict(record._fields['management_decision'].selection).get(record.management_decision, "—")
+            row_cells[3].text = record.decision_basis or "—"
+
+            for i, cell in enumerate(row_cells):
+                set_font(cell)
+
         buffer = io.BytesIO()
         doc.save(buffer)
         buffer.seek(0)
 
         registration_number = self.partner6_id.registration_number or "записи"
-        # Создание вложения в Odoo
+
         attachment = self.env['ir.attachment'].create({
-            'name': f'Наличие права на выполнение работ {registration_number}.docx',
+            'name': f'Сведения о приостановлении_возобновлении действия права {registration_number}.docx',
             'datas': base64.b64encode(buffer.getvalue()),
             'res_model': self._name,
-            'res_id': self.id,
+            'res_id': self[0].id,
             'type': 'binary',
         })
 
-        # Возвращение ссылки на скачивание
         return {
             'type': 'ir.actions.act_url',
             'url': f'/web/content/{attachment.id}?download=true',
             'target': 'self',
         }
 
-
-
 class InsurerInfo(models.Model):
     _name = "insurer.info"
     _description = "insurer info"
 
-    name = fields.Char(string="Наименование организации:")
-    license_number = fields.Char(string="№ Лицензии:")
-    address = fields.Text(string="Адрес:")
-    phone_insurer = fields.Char(string="Контактные телефоны:")
-    website = fields.Char(string="Веб-сайт:")
-    email = fields.Char(string="Электронная почта:")
-
+    name = fields.Char(string="Наименование организации:", store=True)
+    license_number = fields.Char(string="№ Лицензии:", store=True)
+    address = fields.Text(string="Адрес:", store=True)
+    phone_insurer = fields.Char(string="Контактные телефоны:", store=True)
+    website = fields.Char(string="Веб сайт:", store=True)
+    email = fields.Char(string="Электронная почта:", store=True)
 
 class ResPartner(models.Model):
     _inherit = 'res.partner'
@@ -627,13 +748,15 @@ class ResPartner(models.Model):
         ('suspended', 'Исключен'),
     ], string="Статус членства")
     sro_registration_date = fields.Date(string="Дата регистрации в реестре СРО (внесения сведений в реестр):")
-    sro_admission_basis = fields.Char(string="Основание приема в СРО:") #Должна быть ссылка на документ
-
-    show_termination_fields = fields.Boolean(
-        compute="_compute_show_termination_fields", store=False)
-    termination_date = fields.Date(string="Дата прекращения членства")
-    termination_reason = fields.Text(string="Основание прекращения членства")
-    termination_info = fields.Text(string="Сведения о прекращении членства")
+    sro_admission_basis = fields.Many2one('blog.post', string="Основание приема в СРО:") 
+    sro_admission_basis_link = fields.Html(string="Основание приема в СРО:", 
+        compute="_compute_sro_admission_basis_link", store=True)
+    show_termination_fields = fields.Boolean(compute="_compute_show_termination_fields", store=False)
+    termination_date = fields.Date(string="Дата прекращения членства:")
+    termination_reason = fields.Many2one('blog.post', string="Основание прекращения членства:")
+    termination_reason_link = fields.Html(string="Основание прекращения членства:", 
+        compute="_compute_termination_reason_link", store=True)
+    termination_info = fields.Text(string="Сведения о прекращении членства:")
 
     # Компенсационные фонды
     compensation_fund_vv_amount = fields.Float(string="Сумма взноса в Компенсационный Фонд возмещения вреда (КФ ВВ) (руб.):")
@@ -648,22 +771,26 @@ class ResPartner(models.Model):
 
     # Контактные данные
     phone_sro = fields.Char(string="Контактные телефоны:")
+    custom_website = fields.Char(string="Веб сайт:")
     zip = fields.Char(string="Адрес (Индекс):")
     country_id = fields.Many2one('res.country', string="Адрес (Страна):")
     state_id = fields.Many2one('res.country.state', string="Адрес (Субъект РФ):")
+    hood = fields.Char(string="Адрес (Район):")
     city = fields.Char(string="Адрес (Населённый пункт):")
     street = fields.Char(string="Адрес (Улица):")
     street2 = fields.Char(string="Адреc (Дом):")
+    corps = fields.Char(string="Адрес (Корпус / строение):")
+    premises = fields.Char(string="Адрес (Помещение):")
 
     # Страхование
-    insurer_info = fields.Many2one('insurer.info', string="Сведения о страховщике:") 
-    
-    insurer_name = fields.Char(string="Наименование организации:", related='insurer_info.name', store=True)
-    insurer_license_number = fields.Char(string="№ Лицензии:", related='insurer_info.license_number', store=True)
-    insurer_address = fields.Text(string="Адрес:", related='insurer_info.address', store=True)
-    insurer_phone = fields.Char(string="Контактные телефоны:", store=True)
-    insurer_website = fields.Char(string="Веб-сайт:", related='insurer_info.website', store=True)
-    insurer_email = fields.Char(string="Электронная почта:", related='insurer_info.email', store=True)
+    insurer_info = fields.Many2one('insurer.info', string="Сведения о страховщике") 
+
+    insurer_name = fields.Char(string="Наименование организации:")
+    insurer_license_number = fields.Char(string="№ Лицензии:")
+    insurer_address = fields.Text(string="Адрес:")
+    insurer_phone = fields.Char(string="Контактные телефоны:")
+    insurer_website = fields.Char(string="Веб сайт:")
+    insurer_email = fields.Char(string="Электронная почта:")
 
     insurance_contract_number = fields.Char(string="Номер договора страхования:")
     insurance_contract_expiry = fields.Char(string="Срок действия договора страхования:")
@@ -676,16 +803,50 @@ class ResPartner(models.Model):
     sro_contact5_ids = fields.One2many('sro.contacts.contract', 'partner5_id', string="Предложения подрядов")
     sro_contact6_ids = fields.One2many('sro.contacts.construction', 'partner6_id', string="Сведения о приостановлении/возобновлении действия права выполнять строительсвто, реконструкцию, капиатльный ремонт объектов капитального строительства")
 
+    @api.onchange('insurer_info')
+    def _onchange_insurer_info(self):
+        if self.insurer_info:
+            self.insurer_name = self.insurer_info.name
+            self.insurer_license_number = self.insurer_info.license_number
+            self.insurer_address = self.insurer_info.address
+            self.insurer_phone = self.insurer_info.phone_insurer
+            self.insurer_website = self.insurer_info.website
+            self.insurer_email = self.insurer_info.email
+        else:
+            self.insurer_name = False
+            self.insurer_license_number = False
+            self.insurer_address = False
+            self.insurer_phone = False
+            self.insurer_website = False
+            self.insurer_email = False
+
+    @api.depends("sro_admission_basis")
+    def _compute_sro_admission_basis_link(self):
+        for rec in self:
+            if rec.sro_admission_basis:
+                url = f"/blog/resheniia-pravleniia-3/{rec.sro_admission_basis.id}"
+                rec.sro_admission_basis_link = f'<a href="{url}" target="_blank">{rec.sro_admission_basis.name}</a>'
+            else:
+                rec.sro_admission_basis_link = ""
+
+    @api.depends("termination_reason")
+    def _compute_termination_reason_link(self):
+        for rec in self:
+            if rec.termination_reason:
+                url = f"/blog/resheniia-pravleniia-3/{rec.termination_reason.id}"
+                rec.termination_reason_link = f'<a href="{url}" target="_blank">{rec.termination_reason.name}</a>'
+            else:
+                rec.termination_reason_link = ""
+
     @api.depends('sro_membership_status')
     def _compute_show_termination_fields(self):
         for record in self:
             record.show_termination_fields = record.sro_membership_status == 'suspended'
 
     def name_get(self):
-        """Показывает только регистрационный номер в списке выбора"""
         result = []
         for partner in self:
-            name = partner.registration_number or "Без номера"
+            name = partner.registration_number if partner.registration_number else partner.name or "Без номера"
             result.append((partner.id, name))
         return result
 
@@ -699,18 +860,6 @@ class ResPartner(models.Model):
             partners = self.search(args, limit=limit)
         return partners.name_get()
 
-    def format_date(date_value):
-        """Преобразует дату в формат DD.MM.YY"""
-        if not date_value:
-            return '—'
-        if isinstance(date_value, str):  # Если строка, парсим
-            date_value = datetime.strptime(date_value, '%y-%m-%d').date()
-        elif isinstance(date_value, datetime):  # Если datetime, берем только дату
-            date_value = date_value.date()
-        elif not isinstance(date_value, date):  # Если это не date, значит что-то не так
-            return '—'
-        return date_value.strftime('%d.%m.%y')
-
     def action_export_contact_docx(self):
         """Генерирует DOCX-файл с информацией о текущем контакте"""
         self.ensure_one()
@@ -719,11 +868,19 @@ class ResPartner(models.Model):
         heading = doc.add_paragraph('Информация')
         run = heading.runs[0]
         run.font.name = 'Times New Roman'
-        run.font.size = Pt(14)
+        run.font.size = Pt(12)
         run.bold = True
         heading.alignment = 1  # Выравнивание по центру
 
+        # Создаем одну таблицу с двумя колонками
+        table = doc.add_table(rows=0, cols=2)
+        table.autofit = False
+        table.columns[0].width = Cm(7)
+        table.columns[1].width = Cm(9)
+
         def add_info(attribute, value):
+            if not value:
+                return  # Пропускаем пустые поля
             if isinstance(value, (date, datetime)):
                 value = value.strftime('%d.%m.%Y')
             elif isinstance(value, float):
@@ -731,127 +888,92 @@ class ResPartner(models.Model):
             elif not value:
                 value = "—"
 
-            table = doc.add_table(rows=1, cols=2)
-            table.autofit = False
-            table.columns[0].width = Cm(7)
-            table.columns[1].width = Cm(9)
-            
-            row = table.rows[0].cells
-            row[0].text = attribute
-            row[1].text = str(value)
-            
-            for cell in row:
-                for paragraph in cell.paragraphs:
-                    for run in paragraph.runs:
-                        run.font.name = "Times New Roman"  # Изменяем шрифт
-                        run.font.size = Pt(12)  # Размер шрифта 12 pt
-
-        # Регистрационные данные
-        add_info("Регистрационный номер:", self.registration_number)
-        add_info("Сокращенное наименование организации:", self.short_name)
-        add_info("Полное наименование организации:", self.full_name)
-        add_info("ИНН:", self.inn)
-        add_info("ОГРН:", self.ogrn)
-        add_info("Дата гос. регистрации ЮЛ/ИП:", self.registration_date)
-        
-        # Сведения о членстве в СРО
-        add_info("Сведения о соответствии члена СРО условиям членства, предусмотренным законодательством РФ и (или) внутренними документами СРО:", dict(self._fields['sro_membership_compliance'].selection).get(self.sro_membership_compliance, '—'))
-        add_info("Статус членства:", dict(self._fields['sro_membership_status'].selection).get(self.sro_membership_status, '—'))
-        add_info("Дата регистрации в реестре СРО (внесения сведений в реестр):", self.sro_registration_date)
-        add_info("Основание приема в СРО:", self.sro_admission_basis)
-        
-        # Компенсационные фонды
-        add_info("Сумма взноса в Компенсационный Фонд возмещения вреда (КФ ВВ) (руб.):", self.compensation_fund_vv_amount)
-        add_info("Уровень ответственности ВВ:", self.vv_responsibility_level)
-        add_info("Стоимость работ по одному договору:", self.contract_work_cost)
-        add_info("Сумма взноса в Компенсационный Фонд обеспечения договорных обязательств (КФ ОДО) (руб.):", self.compensation_fund_odo_amount)
-        add_info("Уровень ответственности ОДО:", self.odo_responsibility_level)
-        add_info("Предельный размер обязательств по договорам, заключаемым с использованием конкурентных способов заключения договоров:", self.max_obligation_amount)
-        
-        # Руководство
-        add_info("Единоличный исполнительный орган/руководитель коллегиального исполнительного органа:", self.executive_authority)
-        
-        # Контактные данные
-        add_info("Контактные телефоны:", self.phone_sro)
-        add_info("Адрес (Индекс):", self.zip)
-        add_info("Адрес (Страна):", self.country_id.name)
-        add_info("Адрес (Субъект РФ):", self.state_id.name)
-        add_info("Адрес (Населённый пункт):", self.city)
-        add_info("Адрес (Улица):", self.street)
-        add_info("Адрес (Дом):", self.street2)
-        
-        paragraph = doc.add_paragraph("\n")
-        run = paragraph.add_run()  # Добавляем run вручную
-        run.text = "\nСведения о страховщике:"
-        run.font.name = "Times New Roman"  # Меняем шрифт
-        run.font.size = Pt(12)
-        run.bold = False  # Устанавливаем размер шрифта 12 pt
-
-        # Создаем таблицу (2 колонки: атрибут и значение)
-        table = doc.add_table(rows=0, cols=2)
-        table.autofit = True
-
-        def add_table_row(attribute, value):
             row_cells = table.add_row().cells
             row_cells[0].text = attribute
-            row_cells[0].paragraphs[0].runs[0].bold = True
-            row_cells[1].text = value if value else "—"
-
-        add_table_row("Наименование организации:", self.insurer_name)
-        add_table_row("№ Лицензии:", self.insurer_license_number)
-        add_table_row("Адрес:", self.insurer_address)
-        add_table_row("Контактные телефоны:", self.insurer_phone)
-        add_table_row("Веб-сайт:", self.insurer_website)
-        add_table_row("Электронная почта:", self.insurer_email)
-
-        # Убираем границы у таблицы
-        for row in table.rows:
-            for cell in row.cells:
+            row_cells[1].text = str(value)
+            
+            for cell in row_cells:
                 for paragraph in cell.paragraphs:
-                    for run in paragraph.runs:
-                        run.font.name = "Times New Roman"
-                        run.font.size = Pt(12)
-                        run.bold = False 
-                        paragraph.paragraph_format.space_after = Cm(0.1)  # Уменьшаем отступы
-
-        # Добавляем заголовок "Договор страхования"
-        paragraph = doc.add_paragraph("\n")
-
-        run.font.name = "Times New Roman"
-        run.font.size = Pt(12)
-        run.bold = False
-
-        # Создаем отдельную таблицу для договора страхования
-        table_insurance = doc.add_table(rows=0, cols=2)
-        table_insurance.autofit = True
-
-        # Функция добавления строки в таблицу договора страхования
-        def add_table_row_insurance(attribute, value):
-            row_cells = table_insurance.add_row().cells
-            row_cells[0].text = attribute
-            row_cells[1].text = value if value else "—"
-
-        # Заполняем таблицу договора страхования (без жирного шрифта)
-        add_table_row_insurance("Номер договора страхования:", self.insurance_contract_number)
-        add_table_row_insurance("Срок действия договора страхования:", self.insurance_contract_expiry)
-        add_table_row_insurance("Страховая сумма (руб.):", f"{self.insurance_amount:,.2f}".replace(",", " "))
-
-        # Применяем шрифт ко всей таблице договора страхования
-        for row in table_insurance.rows:
-            for cell in row.cells:
-                for paragraph in cell.paragraphs:
+                    paragraph.paragraph_format.space_after = Pt(0)
                     for run in paragraph.runs:
                         run.font.name = "Times New Roman"
                         run.font.size = Pt(12)
 
+        data = [
+            ("Регистрационный номер:", self.registration_number),
+            ("Сокращенное наименование организации:", self.short_name),
+            ("Полное наименование организации:", self.full_name),
+            ("ИНН:", self.inn),
+            ("ОГРН:", self.ogrn),
+            ("Дата гос. регистрации ЮЛ/ИП:", self.registration_date),
+            ("Сведения о соответствии члена СРО условиям членства, предусмотренным законодательством РФ и (или) внутренними документами СРО:", dict(self._fields['sro_membership_compliance'].selection).get(self.sro_membership_compliance, '—')),
+            ("Статус членства:", dict(self._fields['sro_membership_status'].selection).get(self.sro_membership_status, '—')),
+            ("Дата регистрации в реестре СРО (внесения сведений в реестр):", self.sro_registration_date),
+            ("Основание приема в СРО:", self.sro_admission_basis.name if self.sro_admission_basis else "—"),
+        ]
+        for attribute, value in data:
+            add_info(attribute, value)
 
+        # Добавляем блок "Сведения о прекращении членства", если нужно
+        if self.show_termination_fields:
+            termination_data = [
+                ("Дата прекращения членства:", self.termination_date),
+                ("Основание прекращения членства:", self.termination_reason.name),
+                ("Сведения о прекращении членства:", self.termination_info),
+            ]
+            for attribute, value in termination_data:
+                add_info(attribute, value)
+
+        additional_data = [
+            ("Сумма взноса в Компенсационный Фонд возмещения вреда (КФ ВВ) (руб.):", self.compensation_fund_vv_amount),
+            ("Уровень ответственности ВВ:", self.vv_responsibility_level),
+            ("Стоимость работ по одному договору:", self.contract_work_cost),
+            ("Сумма взноса в Компенсационный Фонд обеспечения договорных обязательств (КФ ОДО) (руб.):", self.compensation_fund_odo_amount),
+            ("Уровень ответственности ОДО:", self.odo_responsibility_level),
+            ("Предельный размер обязательств по договорам, заключаемым с использованием конкурентных способов заключения договоров:", self.max_obligation_amount),
+            ("Единоличный исполнительный орган/руководитель коллегиального исполнительного органа:", self.executive_authority),
+            ("Контактные телефоны:", self.phone_sro),
+            ("Веб сайт:", self.custom_website),
+            ("Адрес (Индекс):", self.zip),
+            ("Адрес (Страна):", self.country_id.name),
+            ("Адрес (Субъект РФ):", self.state_id.name),
+            ("Адрес (Район):", self.hood),
+            ("Адрес (Населённый пункт):", self.city),
+            ("Адрес (Улица):", self.street),
+            ("Адрес (Дом):", self.street2),
+            ("Адрес (Корпус/строение):", self.corps),
+            ("Адрес (Помещение):", self.premises),
+        ]
+
+        for attribute, value in additional_data:
+            add_info(attribute, value)
+
+        # Добавляем строку "Сведения о страховщике" с данными в правой колонке
+        insurer_info = (
+            f"Наименование организации: {self.insurer_name}\n"
+            f"№ Лицензии: {self.insurer_license_number}\n"
+            f"Адрес: {self.insurer_address}\n"
+            f"Контактные телефоны: {self.insurer_phone}\n"
+            f"Веб сайт: {self.insurer_website}\n"
+            f"Электронная почта: {self.insurer_email}\n"  
+        )
+        add_info("Сведения о страховщике:", insurer_info)
+
+        # Отдельно добавляем страховые поля в обычном порядке
+        insurance_data = [
+            ("Номер договора страхования:", self.insurance_contract_number),
+            ("Срок действия договора страхования:", self.insurance_contract_expiry),
+            ("Страховая сумма (руб.):", f"{self.insurance_amount:,.2f}".replace(",", " ")),
+        ]
+        for attribute, value in insurance_data:
+            add_info(attribute, value)
 
         buffer = io.BytesIO()
         doc.save(buffer)
         buffer.seek(0)
 
         attachment = self.env['ir.attachment'].create({
-            'name': f'Данные реестра по {self.name}.docx',
+            'name': f'Данные реестра по {self.registration_number}.docx',
             'datas': base64.b64encode(buffer.getvalue()),
             'res_model': 'res.partner',
             'res_id': self.id,

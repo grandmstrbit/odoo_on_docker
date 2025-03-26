@@ -1,14 +1,13 @@
 <odoo>
-
 	<record id="view_sro_contacts_work_form" model="ir.ui.view">
 	    <field name="name">sro.contacts.work.form</field>
 	    <field name="model">sro.contacts.work</field>
 	    <field name="arch" type="xml">
 	        <form string="SRO Contacts Work">
 	            <group>
-                        <!-- Галочка "Право на выполнение работ" -->
                     <field name="has_work_rights" string="Правом не наделен:"/>
 				</group>
+
 	            <group>
 	                <field name="number" string="№:"/>
 	                <field name="right_status" string="Статус права:" widget="dropdown"
@@ -16,6 +15,7 @@
                         decoration-success="right_status == 'active'"/>
 	                <field name="right_effective_date" string="Дата вступления решения в силу:"/>
 	                <field name="right_basis" string="Основание выдачи (Документ №):"/>
+	                <field name="right_basis_url" string="Основание выдачи (Документ №):"/>
 	                <field name="construction_object" string="Объект капитального строительства:" widget="dropdown"
                         decoration-danger="construction_object == 'no'"
                         decoration-success="construction_object == 'yes'"/>/>
@@ -28,12 +28,14 @@
 	                <field name="odo_right" widget="dropdown"
                         decoration-danger="odo_right == 'no'"
                         decoration-success="odo_right == 'yes'" string="Наличие права на ОДО (Дата вступления решения в силу, Документ №):"/>
+                    <field name="show_hide_fields" invisible="1"/>
+                    <field name="hide_odo_date" placeholder="Введите дату" string="" invisible="show_hide_fields == False"/>
+                    <field name="hide_odo_doc" placeholder="Выберите документ" string="" invisible="show_hide_fields == False"/>
+                    <field name="hide_odo_doc_link" string="" invisible="show_hide_fields == False"/>
 	            </group>
 
-	            <!-- Полностью удаляем поле -->
 	            <xpath expr="//field[@name='partner2_id']" position="replace"/>
 	        </form>
 	    </field>
 	</record>
-
 </odoo>

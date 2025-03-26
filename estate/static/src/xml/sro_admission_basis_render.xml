@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <t t-name="estate.SroAdmissionBasis">
+        <t t-if="state.admissionBasis">
+            <a t-att-href="admissionBasisUrl" target="_blank">
+                <t t-esc="state.admissionBasis.name"/>
+            </a>
+        </t>
+    </t>
+</odoo>

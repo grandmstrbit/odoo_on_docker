@@ -1,5 +1,4 @@
 <odoo>
-
 	<record id="sro_contacts_construction_form" model="ir.ui.view">
 	    <field name="name">sro.contacts.construction.form</field>
 	    <field name="model">sro.contacts.construction</field>
@@ -12,10 +11,8 @@
 	                <field name="decision_basis" string="Основание решения:"/>
 	            </group>
 
-	            <!-- Полностью удаляем поле -->
 	            <xpath expr="//field[@name='partner6_id']" position="replace"/>
 	        </form>
 	    </field>
 	</record>
-
 </odoo>
